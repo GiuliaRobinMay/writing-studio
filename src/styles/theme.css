@@ -1,0 +1,72 @@
+/* ── House style (spec §6) ──────────────────────────────────────────────── */
+:root {
+  --accent: #8b5a3c; /* warm brown */
+  --accent-soft: #a9774f;
+  --accent-wash: #f3ece4;
+
+  --paper: #fbf8f3; /* warm off-white "paper" */
+  --paper-edge: #efe8dd;
+  --surface: #ffffff;
+  --ink: #2b2520; /* near-black warm ink */
+  --ink-soft: #6b6258;
+  --ink-faint: #9a9087;
+  --line: #e7ded2;
+  --line-strong: #d9cdbb;
+
+  --shadow: 0 1px 2px rgba(74, 58, 42, 0.06), 0 8px 24px rgba(74, 58, 42, 0.07);
+  --shadow-lift: 0 2px 6px rgba(74, 58, 42, 0.1), 0 18px 40px rgba(74, 58, 42, 0.12);
+
+  --serif: Georgia, 'Times New Roman', serif;
+  --sans: ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  /* Body reading/editing font — overridable from Settings. */
+  --reading-font: Georgia, serif;
+
+  --bg-top: #fdfaf5;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --maxw: 1180px;
+}
+
+/* ── Dark mode — keep the warm, candle-lit studio feeling ─────────────────── */
+:root[data-theme='dark'] {
+  --paper: #211d19;
+  --paper-edge: #2c2722;
+  --surface: #2a2520;
+  --ink: #efe7db;
+  --ink-soft: #c2b6a6;
+  --ink-faint: #8d8276;
+  --line: #3a342d;
+  --line-strong: #4a4239;
+  --bg-top: #262019;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lift: 0 2px 6px rgba(0, 0, 0, 0.4), 0 18px 40px rgba(0, 0, 0, 0.5);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  /* Subtle paper grain over a warm wash. */
+  background-color: var(--paper);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)' opacity='0.05'/%3E%3C/svg%3E"),
+    radial-gradient(1200px 600px at 80% -10%, var(--bg-top) 0%, var(--paper) 60%);
+  background-repeat: repeat, no-repeat;
+  color: var(--ink);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-soft); }
+
+button {
+  font-family: var(--sans);
+  cursor: pointer;
+}
+
+::selection { background: rgba(139, 90, 60, 0.18); }

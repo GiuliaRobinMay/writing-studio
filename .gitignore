@@ -1,0 +1,11 @@
+node_modules
+dist
+.DS_Store
+*.local
+.vite
+tsconfig.tsbuildinfo
+
+# Brain service secrets — never commit credentials
+server/config.json
+server/*-key.json
+server/brain-key.json

@@ -1,0 +1,12 @@
+{
+  "_comment": "Copy this to config.json (gitignored) and fill in your read-only brain access. Leave config.json absent to run in mock mode.",
+  "projectId": "your-gcp-project-id",
+  "dataset": "your_bigquery_dataset",
+  "location": "US",
+  "keyFile": "./brain-key.json",
+  "entitiesTable": "e1_entity_names_embedded",
+  "nodesTable": "nodes",
+  "chunksTable": "chunks",
+  "embeddingModel": "your_embedding_model",
+  "embeddingColumn": "embedding"
+}

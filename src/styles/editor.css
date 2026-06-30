@@ -1,0 +1,126 @@
+/* ── Editor layout: jump rail + manuscript column ───────────────────────── */
+.editor-layout {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+.editor-rail { position: sticky; top: 86px; }
+.editor-rail .back { margin-bottom: 14px; }
+.rail-jump { display: flex; flex-direction: column; gap: 2px; border-left: 1px solid var(--line); }
+.rail-item { display: block; padding: 7px 12px; border-left: 2px solid transparent; margin-left: -1px; }
+.rail-item:hover { border-left-color: var(--accent); background: var(--accent-wash); }
+.rail-part { display: block; font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
+.rail-title { display: block; font-family: var(--serif); font-size: 13px; color: var(--ink-soft); margin-top: 1px; line-height: 1.3; }
+
+.editor-main { max-width: 760px; margin: 0 auto; }
+
+/* Chapter header */
+.editor-chapter-head { border-bottom: 1px solid var(--line); padding-bottom: 18px; margin-bottom: 8px; }
+.ech-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.ech-num { font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+.ech-actions { display: flex; align-items: center; gap: 12px; }
+.ech-wc { font-size: 12.5px; color: var(--ink-faint); }
+.ech-title {
+  font-family: var(--serif); font-size: 30px; font-weight: 600; color: var(--ink);
+  border: none; background: none; width: 100%; padding: 2px 0; letter-spacing: -0.01em;
+}
+.ech-tagline {
+  font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--ink-soft);
+  border: none; background: none; width: 100%; padding: 2px 0;
+}
+.ech-title:focus, .ech-tagline:focus, .sec-edit-title:focus { outline: none; box-shadow: 0 1px 0 var(--accent); }
+
+/* Per-chapter structure selector */
+.ech-structure { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.ech-structure-lbl { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); font-weight: 700; }
+.ech-structure select {
+  font-family: var(--sans); font-size: 13px; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 999px;
+  padding: 5px 12px; cursor: pointer;
+}
+.ech-structure-hint { font-size: 12px; color: var(--ink-faint); font-style: italic; }
+
+/* Section header icon buttons */
+.sec-focus, .sec-del { width: 26px; height: 26px; border: 1px solid transparent; background: none; border-radius: 6px; color: var(--ink-faint); font-size: 13px; cursor: pointer; }
+.sec-focus:hover { color: var(--accent); border-color: var(--line-strong); background: var(--accent-wash); }
+.sec-del:hover { color: #b04a4a; border-color: #d9b3a8; background: rgba(176,74,74,0.06); }
+
+/* Add-section button */
+.add-section {
+  width: 100%; margin-top: 18px; padding: 12px;
+  border: 1.5px dashed var(--line-strong); border-radius: var(--radius-sm);
+  background: transparent; color: var(--ink-soft);
+  font-family: var(--sans); font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.15s;
+}
+.add-section:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-wash); }
+.add-section .plus { font-size: 16px; line-height: 1; }
+
+/* Section editor block */
+.sec-edit { padding: 16px 0 22px; }
+.sec-edit-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.sec-edit-part { font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; }
+.sec-edit-meta { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.sec-grip { background: none; border: none; color: var(--ink-faint); cursor: grab; font-size: 14px; line-height: 1; padding: 2px 4px 2px 0; touch-action: none; }
+.sec-grip:hover { color: var(--ink-soft); }
+.sec-grip:active { cursor: grabbing; }
+
+/* Insert-a-section divider with a hover "+" (block-builder style) */
+.sec-divider { position: relative; height: 20px; display: flex; align-items: center; }
+.sec-divider-line { flex: 1; height: 0; border-top: 1px dashed var(--line); transition: border-color 0.15s; }
+.sec-divider:hover .sec-divider-line { border-top-color: var(--accent-soft); }
+.sec-divider-add {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0.6);
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 1px solid var(--accent); background: var(--surface); color: var(--accent);
+  font-size: 18px; line-height: 1; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; opacity: 0; transition: opacity 0.15s, transform 0.15s; box-shadow: var(--shadow);
+}
+.sec-divider:hover .sec-divider-add { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.sec-divider-add:hover { background: var(--accent); color: #fff; }
+.sec-edit-meta .wc { font-size: 12px; color: var(--ink-faint); }
+.sec-edit-title {
+  font-family: var(--serif); font-size: 21px; font-weight: 600; color: var(--accent);
+  border: none; background: none; width: 100%; padding: 2px 0; margin-bottom: 6px;
+}
+
+/* Floating selection toolbar (bubble) */
+.bubble {
+  display: flex; align-items: center; gap: 2px; padding: 4px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: var(--shadow-lift);
+}
+
+/* Toolbar buttons (shared by the bubble) */
+.tb { display: flex; align-items: center; gap: 2px; padding: 4px; margin: 4px 0 8px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); width: fit-content; }
+.tb-btn { width: 30px; height: 28px; border: none; background: none; border-radius: 6px; color: var(--ink-soft); font-size: 14px; font-weight: 600; }
+.tb-btn:hover { background: var(--accent-wash); color: var(--accent); }
+.tb-btn.on { background: var(--accent); color: #fff; }
+.tb-sep { width: 1px; height: 18px; background: var(--line); margin: 0 4px; }
+
+/* TipTap content — match reading typography while editing */
+.prose-edit .ProseMirror {
+  font-family: var(--reading-font); font-size: 17px; line-height: 1.7; color: var(--ink);
+  outline: none; min-height: 40px;
+}
+.prose-edit .ProseMirror p { margin: 0 0 0.85em; }
+.prose-edit .ProseMirror h1 { font-size: 26px; font-weight: 600; margin: 1.1em 0 0.45em; line-height: 1.2; }
+.prose-edit .ProseMirror h2 { font-size: 21px; font-weight: 600; margin: 1em 0 0.4em; }
+.prose-edit .ProseMirror h3 { font-size: 18px; margin: 0.9em 0 0.3em; }
+.prose-edit .ProseMirror blockquote { border-left: 3px solid var(--accent); margin: 0.6em 0; padding-left: 16px; color: var(--ink-soft); font-style: italic; }
+.prose-edit .ProseMirror ul,
+.prose-edit .ProseMirror ol { padding-left: 24px; margin: 0 0 0.85em; }
+.prose-edit .ProseMirror u { text-decoration: underline; }
+.prose-edit .ProseMirror s { text-decoration: line-through; }
+.prose-edit .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder); float: left; color: var(--ink-faint); pointer-events: none; height: 0; font-style: italic;
+}
+
+.editor-foot { display: flex; justify-content: space-between; gap: 12px; margin-top: 28px; }
+
+@media (max-width: 860px) {
+  .editor-layout { grid-template-columns: 1fr; }
+  .editor-rail { position: static; }
+  .rail-jump { flex-direction: row; flex-wrap: wrap; border-left: none; }
+}

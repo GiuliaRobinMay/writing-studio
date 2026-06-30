@@ -1,0 +1,11 @@
+{
+  "name": "btb-brain-server",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Local read-only proxy from the app to the BIG TRIBE BRAIN (BigQuery).",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {}
+}

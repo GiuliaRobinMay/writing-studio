@@ -1,0 +1,66 @@
+/* ── Library dashboard ──────────────────────────────────────────────────── */
+.dashboard { max-width: 1000px; }
+
+.studio-head { text-align: center; margin: 12px 0 46px; }
+.studio-name {
+  font-family: var(--serif); font-size: 40px; font-weight: 600; letter-spacing: -0.02em;
+  text-align: center; border: none; background: transparent; color: var(--ink); width: 100%;
+}
+.studio-name:focus { outline: none; }
+.studio-by {
+  display: flex; align-items: baseline; justify-content: center; gap: 8px; margin-top: 2px;
+  font-family: var(--serif); font-style: italic; font-size: 17px; color: var(--ink-soft);
+}
+.studio-owner {
+  font-family: var(--serif); font-style: italic; font-size: 17px; color: var(--accent);
+  border: none; background: transparent; text-align: left; padding: 0 2px;
+}
+.studio-owner:focus { outline: none; box-shadow: 0 1px 0 var(--accent); }
+
+/* Shelves */
+.shelves { display: flex; flex-direction: column; gap: 40px; }
+.shelf-books {
+  display: flex; gap: 36px; align-items: flex-end; padding: 0 6px; min-height: 244px;
+}
+/* The shelf is just a fine line. */
+.shelf-board {
+  height: 1px; margin-top: 0;
+  background: linear-gradient(90deg, transparent, var(--line-strong) 6%, var(--line-strong) 94%, transparent);
+}
+
+/* Book on the shelf — minimal, flat, modern */
+.book-slot { width: 152px; display: flex; flex-direction: column; gap: 11px; }
+.book-cover {
+  position: relative; width: 152px; aspect-ratio: 1 / 1.5;
+  border-radius: 4px;
+  background-size: cover; background-position: center;
+  box-shadow: 0 5px 16px rgba(74, 58, 42, 0.13);
+  cursor: pointer; overflow: hidden;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.book-cover:hover { transform: translateY(-6px); box-shadow: 0 12px 28px rgba(74, 58, 42, 0.2); }
+
+.cover-gen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 18px; text-align: center; }
+.cover-title { font-family: var(--serif); color: #fff; font-size: 19px; font-weight: 600; line-height: 1.25; }
+.cover-author { font-family: var(--serif); font-style: italic; color: rgba(255, 255, 255, 0.82); font-size: 11.5px; margin-top: 12px; }
+
+.book-foot { display: flex; flex-direction: column; gap: 6px; min-height: 46px; }
+.book-title-lbl { font-family: var(--serif); font-size: 14.5px; font-weight: 600; color: var(--ink); line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.book-status-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
+.book-status-tag .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+/* Add-book slot */
+.book-cover.add {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  background: transparent; border: 2px dashed var(--line-strong); color: var(--ink-faint);
+  box-shadow: none;
+}
+.book-cover.add:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-5px); box-shadow: none; }
+.book-cover.add .plus { font-size: 34px; line-height: 1; }
+.book-cover.add .add-label { font-size: 12.5px; font-weight: 600; }
+
+@media (max-width: 720px) {
+  .shelf-books { gap: 18px; padding: 0 6px; min-height: 200px; }
+  .book-slot, .book-cover { width: 120px; }
+  .cover-title { font-size: 16px; }
+}

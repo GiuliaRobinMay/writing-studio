@@ -1,0 +1,71 @@
+/* ── Single-section focus mode — hyper-minimal writing ──────────────────── */
+.focus {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 24px 120px;
+}
+
+.focus-bar {
+  position: sticky; top: 0; z-index: 10;
+  width: 100%; max-width: 720px;
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 0 14px;
+  background: linear-gradient(var(--paper) 70%, transparent);
+}
+.focus-exit {
+  font-size: 13px; font-weight: 600; color: var(--ink-soft);
+  background: none; border: none; cursor: pointer; padding: 6px 10px; border-radius: 999px;
+}
+.focus-exit:hover { background: var(--accent-wash); color: var(--accent); }
+.focus-ch {
+  flex: 1; text-align: center; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.focus-bar-right { display: flex; align-items: center; gap: 12px; }
+.focus-words { font-size: 12.5px; color: var(--ink-faint); }
+
+.focus-body { width: 100%; max-width: 720px; margin-top: 30px; }
+.focus-label {
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent); font-weight: 700; margin-bottom: 10px;
+}
+.focus-title {
+  font-family: var(--serif); font-size: 30px; font-weight: 600; color: var(--ink);
+  border: none; background: none; width: 100%; padding: 2px 0; margin-bottom: 18px; letter-spacing: -0.01em;
+}
+.focus-title:focus { outline: none; }
+/* The writing surface gets more room and breathing space in focus mode. */
+.focus-body .prose-edit .ProseMirror { font-size: 18px; line-height: 1.8; min-height: 50vh; }
+
+.focus-nav { width: 100%; max-width: 720px; display: flex; justify-content: space-between; gap: 12px; margin-top: 40px; }
+
+/* ── Brief for AI ───────────────────────────────────────────────────────── */
+.brief { margin-top: 34px; border-top: 1px solid var(--line); padding-top: 16px; }
+.brief-toggle {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  background: none; border: none; cursor: pointer;
+  font-family: var(--sans); font-size: 13px; font-weight: 600; color: var(--ink-soft); padding: 4px 0;
+}
+.brief-toggle:hover { color: var(--accent); }
+.brief-chev { color: var(--ink-faint); font-size: 11px; }
+.brief-body {
+  margin-top: 12px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow);
+}
+.brief-help { font-size: 12.5px; color: var(--ink-faint); margin: 0 0 10px; line-height: 1.45; }
+.brief-text {
+  width: 100%; font-family: var(--sans); font-size: 14px; color: var(--ink); line-height: 1.5;
+  background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; resize: vertical;
+}
+.brief-text:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+.brief-voice { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.brief-audio { height: 34px; max-width: 240px; }
+.brief-err { font-size: 12px; color: #b04a4a; margin: 8px 0 0; }
+.brief-draft { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.brief-note { font-size: 12.5px; color: var(--ink-soft); margin: 10px 0 0; line-height: 1.45; font-style: italic; }
+
+@media (max-width: 760px) {
+  .focus-ch { display: none; }
+}
