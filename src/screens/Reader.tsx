@@ -1,9 +1,10 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { chaptersSorted, currentBook, sectionsOf, useBookStore } from '../store/useBookStore'
 import type { Chapter, Section } from '../types'
 import { type Block, htmlToBlocks, packPages } from '../lib/paginate'
 import { isHtmlEmpty } from '../lib/text'
+import { bookToDocxBlob, downloadBlob } from '../lib/exportDocx'
 import { ReaderNotes } from '../components/ReaderNotes'
 
 // Must mirror reader.css page geometry so packing matches rendering.
@@ -154,6 +155,47 @@ export function Reader() {
   const prev = idx > 0 ? ordered[idx - 1] : undefined
   const next = idx >= 0 && idx < ordered.length - 1 ? ordered[idx + 1] : undefined
 
+  // ── Export (Word / print-to-PDF) ──
+  const notes = useBookStore((s) => currentBook(s).notes)
+  const [exporting, setExporting] = useState(false)
+  const [expOpen, setExpOpen] = useState(false)
+  const expRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!expOpen) return
+    const onDoc = (e: MouseEvent) => {
+      if (expRef.current && !expRef.current.contains(e.target as Node)) setExpOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [expOpen])
+
+  async function exportWord() {
+    setExpOpen(false)
+    setExporting(true)
+    try {
+      const blob = await bookToDocxBlob(book, chapters, sections, notes, single?.id)
+      const name = (single ? single.title || 'chapter' : book.title || 'book').replace(/[^\w-]+/g, '_')
+      downloadBlob(blob, `${name}.docx`)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  // ── Comments (gathered margin notes for review) ──
+  const [commentsOpen, setCommentsOpen] = useState(false)
+  const viewNotes = useMemo(() => {
+    const ids = new Set(sections.filter((s) => !single || s.chapterId === single.id).map((s) => s.id))
+    return notes.filter((n) => ids.has(n.sectionId))
+  }, [notes, sections, single])
+  function jumpToNote(id: string) {
+    const el = document.querySelector(`.note-hl[data-note-id="${id}"]`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el.classList.add('note-flash')
+      setTimeout(() => el.classList.remove('note-flash'), 1200)
+    }
+  }
+
   return (
     <main className="page reader">
       <div className="reader-bar">
@@ -175,6 +217,17 @@ export function Reader() {
         <span className="rb-count">
           {pages.length} {pages.length === 1 ? 'page' : 'pages'}
         </span>
+        <div className="rb-export" ref={expRef}>
+          <button className="rb-export-btn" onClick={() => setExpOpen((o) => !o)} disabled={exporting}>
+            {exporting ? 'Preparing…' : '⤓ Export'}
+          </button>
+          {expOpen && (
+            <div className="more-pop rb-export-pop">
+              <button onClick={exportWord}>Word (.docx){single ? ' — this chapter' : ''}</button>
+              <button onClick={() => { setExpOpen(false); window.print() }}>Print / Save as PDF</button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="pages">
@@ -219,6 +272,30 @@ export function Reader() {
       </div>
 
       <ReaderNotes />
+
+      <button className={`comments-fab${commentsOpen ? ' on' : ''}`} onClick={() => setCommentsOpen((o) => !o)} title="Comments">
+        💬 <span>{viewNotes.length}</span>
+      </button>
+      {commentsOpen && (
+        <aside className="comments-panel">
+          <div className="comments-head">
+            <span>Comments · {viewNotes.length}</span>
+            <button onClick={() => setCommentsOpen(false)} title="Close">✕</button>
+          </div>
+          {viewNotes.length === 0 ? (
+            <p className="empty" style={{ padding: '0 4px' }}>No comments yet. Select text in the book to add one.</p>
+          ) : (
+            <div className="comments-list">
+              {viewNotes.map((n) => (
+                <button className="comment-item" key={n.id} onClick={() => jumpToNote(n.id)}>
+                  {n.quote && <div className="comment-quote">“{n.quote}”</div>}
+                  <div className="comment-text">{n.text || '(empty note)'}</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </aside>
+      )}
     </main>
   )
 }
