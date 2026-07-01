@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   DndContext,
@@ -15,6 +15,7 @@ import { countWords } from '../lib/text'
 import type { Section } from '../types'
 import { StatusSelect } from '../components/StatusChip'
 import { SectionEditor } from '../components/SectionEditor'
+import { ChapterWorkspace } from '../components/ChapterWorkspace'
 
 /** A draggable section, with the grip wired to dnd-kit. */
 function SortableSection({ section, canDelete }: { section: Section; canDelete: boolean }) {
@@ -71,6 +72,7 @@ export function Editor() {
   const addSection = useBookStore((s) => s.addSection)
   const reorderSections = useBookStore((s) => s.reorderSections)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+  const [showWorkspace, setShowWorkspace] = useState(false)
 
   const ordered = useMemo(() => chaptersSorted(chapters), [chapters])
   const chapter = chapters.find((c) => c.id === chapterId)
@@ -161,6 +163,12 @@ export function Editor() {
             <span className="ech-structure-hint">Apply a structure, or write freely.</span>
           </div>
         </div>
+
+        <button className={`ws-toggle${showWorkspace ? ' open' : ''}`} onClick={() => setShowWorkspace((o) => !o)}>
+          <span className="ws-toggle-chev">{showWorkspace ? '▾' : '▸'}</span>
+          Chapter workspace — brief, materials, quotes &amp; images
+        </button>
+        {showWorkspace && <ChapterWorkspace chapterId={chapter.id} />}
 
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onSectionDragEnd}>
           <SortableContext items={chSections.map((s) => s.id)} strategy={verticalListSortingStrategy}>

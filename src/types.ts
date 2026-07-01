@@ -53,6 +53,32 @@ export interface Section {
   updatedAt: number
 }
 
+// A quote the author wants to use in a chapter.
+export interface Quote {
+  id: string
+  text: string
+  source: string
+}
+
+// An image attached to a chapter (data lives in a separate idb store: img:<id>).
+export interface ChapterImage {
+  id: string
+  caption: string
+  createdAt: number
+}
+
+// The per-chapter workspace: the brief (idea/purpose/outcome) you revisit, plus
+// the raw materials (resources, quotes, images, notes) the chapter draws on.
+export interface ChapterWorkspace {
+  idea: string
+  purpose: string
+  outcome: string
+  notes: string
+  resources: Resource[]
+  quotes: Quote[]
+  images: ChapterImage[]
+}
+
 export interface Chapter {
   id: string
   number: number
@@ -62,6 +88,8 @@ export interface Chapter {
   order: number
   /** The structure this chapter follows; null = freeform (no structure). */
   templateId: string | null
+  /** Chapter-level brief + materials. */
+  workspace?: ChapterWorkspace
   updatedAt: number
 }
 

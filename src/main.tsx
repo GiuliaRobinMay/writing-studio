@@ -18,6 +18,7 @@ import './styles/focus.css'
 import './styles/reader.css'
 import './styles/settings.css'
 import './styles/notes.css'
+import './styles/workspace.css'
 
 // Hash router → works when opened from the file system or any static host.
 const router = createHashRouter([

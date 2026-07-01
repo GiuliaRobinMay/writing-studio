@@ -6,6 +6,7 @@ import type {
   BookStatus,
   Chapter,
   ChapterTemplate,
+  ChapterWorkspace,
   Reference,
   Resource,
   ResourceKind,
@@ -84,6 +85,7 @@ interface Actions {
   setChapterNumber: (chapterId: string, newNumber: number) => void
   setChapterStatus: (chapterId: string, status: Status) => void
   updateChapterMeta: (chapterId: string, patch: Partial<Pick<Chapter, 'title' | 'tagline'>>) => void
+  updateChapterWorkspace: (chapterId: string, patch: Partial<ChapterWorkspace>) => void
   reorderChapters: (orderedIds: string[]) => void
   applyStructure: (chapterId: string, templateId: string | null) => void
 
@@ -108,6 +110,10 @@ function renumber(chapters: Chapter[], now: number): Chapter[] {
   return [...chapters]
     .sort((a, b) => a.order - b.order)
     .map((ch, i) => ({ ...ch, order: i, number: i + 1, updatedAt: now }))
+}
+
+export function emptyWorkspace(): ChapterWorkspace {
+  return { idea: '', purpose: '', outcome: '', notes: '', resources: [], quotes: [], images: [] }
 }
 
 const stripHtml = (h: string) => h.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
@@ -316,6 +322,15 @@ export const useBookStore = create<Store>()(
             ...b,
             chapters: b.chapters.map((c) =>
               c.id === chapterId ? { ...c, ...patch, updatedAt: Date.now() } : c,
+            ),
+          })),
+        updateChapterWorkspace: (chapterId, patch) =>
+          patchBook((b) => ({
+            ...b,
+            chapters: b.chapters.map((c) =>
+              c.id === chapterId
+                ? { ...c, workspace: { ...emptyWorkspace(), ...c.workspace, ...patch }, updatedAt: Date.now() }
+                : c,
             ),
           })),
         reorderChapters: (orderedIds) =>
