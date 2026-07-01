@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   DndContext,
@@ -43,19 +43,38 @@ function SortableSection({ section, canDelete }: { section: Section; canDelete: 
   )
 }
 
-/** The hover "+" between sections — adds a section at this position. */
+/** The hover "+" between blocks — opens a menu to add a section, separator, or image. */
 function InsertDivider({ chapterId, index }: { chapterId: string; index: number }) {
   const insertSection = useBookStore((s) => s.insertSection)
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [open])
+  const add = (kind: 'section' | 'separator' | 'image') => {
+    insertSection(chapterId, index, kind)
+    setOpen(false)
+  }
   return (
-    <div className="sec-divider">
+    <div className={`sec-divider${open ? ' open' : ''}`} ref={ref}>
       <span className="sec-divider-line" />
-      <button
-        className="sec-divider-add"
-        title="Add a section here"
-        onClick={() => insertSection(chapterId, index)}
-      >
-        +
+      <button className="sec-divider-add" title="Add here" onClick={() => setOpen((o) => !o)}>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
       </button>
+      {open && (
+        <div className="sec-add-menu">
+          <button onClick={() => add('section')}>＋ New section</button>
+          <button onClick={() => add('separator')}>― Separator</button>
+          <button onClick={() => add('image')}>▦ Image</button>
+        </div>
+      )}
     </div>
   )
 }

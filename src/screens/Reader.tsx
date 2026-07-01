@@ -5,6 +5,7 @@ import type { Chapter, Section } from '../types'
 import { type Block, htmlToBlocks, packPages } from '../lib/paginate'
 import { isHtmlEmpty } from '../lib/text'
 import { bookToDocxBlob, downloadBlob } from '../lib/exportDocx'
+import { getImage } from '../lib/imagestore'
 import { ReaderNotes } from '../components/ReaderNotes'
 
 // Must mirror reader.css page geometry so packing matches rendering.
@@ -24,7 +25,7 @@ interface RBlock {
 
 const pad2 = (n: number) => String(n).padStart(2, '0')
 
-function buildBlocks(chapters: Chapter[], sections: Section[], onlyChapter?: string): RBlock[] {
+function buildBlocks(chapters: Chapter[], sections: Section[], images: Record<string, string>, onlyChapter?: string): RBlock[] {
   const out: RBlock[] = []
   const chs = onlyChapter ? chapters.filter((c) => c.id === onlyChapter) : chapters
 
@@ -42,7 +43,9 @@ function buildBlocks(chapters: Chapter[], sections: Section[], onlyChapter?: str
       head: ch.title || `Chapter ${ch.number}`,
     })
 
-    const content = sectionsOf(sections, ch.id).filter((s) => !isHtmlEmpty(s.body))
+    const content = sectionsOf(sections, ch.id).filter(
+      (s) => s.kind === 'separator' || s.kind === 'image' || !isHtmlEmpty(s.body),
+    )
     if (content.length === 0) {
       out.push({
         block: { kind: 'html', html: 'This chapter is still being written.' },
@@ -56,6 +59,14 @@ function buildBlocks(chapters: Chapter[], sections: Section[], onlyChapter?: str
 
     let firstBodyPending = true
     for (const sec of content) {
+      if (sec.kind === 'separator') {
+        out.push({ block: { kind: 'separator' }, keepWithNext: false, breakBefore: false, head: ch.title })
+        continue
+      }
+      if (sec.kind === 'image') {
+        out.push({ block: { kind: 'image', src: sec.imageId ? images[sec.imageId] ?? '' : '', caption: sec.title }, keepWithNext: false, breakBefore: false, head: ch.title })
+        continue
+      }
       if (sec.title.trim()) {
         out.push({
           block: { kind: 'section-title', title: sec.title },
@@ -91,6 +102,17 @@ function RenderBlock({ rb }: { rb?: RBlock }) {
   if (b.kind === 'section-title') {
     return <div className="rblock section-title">{b.title}</div>
   }
+  if (b.kind === 'separator') {
+    return <div className="rblock separator-rblock">✳&nbsp;&nbsp;✳&nbsp;&nbsp;✳</div>
+  }
+  if (b.kind === 'image') {
+    return (
+      <div className="rblock image-rblock">
+        {b.src ? <img src={b.src} alt={b.caption} /> : <div className="image-ph" />}
+        {b.caption && <div className="image-cap">{b.caption}</div>}
+      </div>
+    )
+  }
   return (
     <div
       className={`rblock${rb.dropCap ? ' dropcap' : ''}${rb.empty ? ' reader-empty' : ''}`}
@@ -122,9 +144,28 @@ export function Reader() {
 
   const ordered = useMemo(() => chaptersSorted(chapters), [chapters])
   const single = chapterId ? chapters.find((c) => c.id === chapterId) : undefined
+
+  // Load image-block pictures from idb so they can be paginated & rendered.
+  const [images, setImages] = useState<Record<string, string>>({})
+  const imageIds = sections.filter((s) => s.kind === 'image' && s.imageId).map((s) => s.imageId!).join(',')
+  useEffect(() => {
+    const ids = imageIds ? imageIds.split(',') : []
+    if (!ids.length) return
+    let alive = true
+    Promise.all(ids.map(async (id) => [id, await getImage(id)] as const)).then((entries) => {
+      if (!alive) return
+      const m: Record<string, string> = {}
+      for (const [id, u] of entries) if (u) m[id] = u
+      setImages((prev) => ({ ...prev, ...m }))
+    })
+    return () => {
+      alive = false
+    }
+  }, [imageIds])
+
   const rblocks = useMemo(
-    () => buildBlocks(ordered, sections, chapterId),
-    [ordered, sections, chapterId],
+    () => buildBlocks(ordered, sections, images, chapterId),
+    [ordered, sections, images, chapterId],
   )
 
   const hostRef = useRef<HTMLDivElement>(null)

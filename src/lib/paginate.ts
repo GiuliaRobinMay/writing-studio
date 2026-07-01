@@ -8,6 +8,8 @@ export type Block =
   | { kind: 'chapter-title'; chapterId: string; number: number; title: string; tagline: string }
   | { kind: 'section-title'; title: string }
   | { kind: 'html'; html: string }
+  | { kind: 'separator' }
+  | { kind: 'image'; src: string; caption: string }
 
 export interface Page {
   /** 1-based page number across the whole book. */

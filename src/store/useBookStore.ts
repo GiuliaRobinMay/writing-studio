@@ -101,7 +101,8 @@ interface Actions {
   updateSectionBrief: (sectionId: string, brief: string) => void
   setSectionStatus: (sectionId: string, status: Status) => void
   addSection: (chapterId: string) => void
-  insertSection: (chapterId: string, index: number) => void
+  insertSection: (chapterId: string, index: number, kind?: 'section' | 'separator' | 'image') => void
+  setSectionImage: (sectionId: string, imageId: string) => void
   removeSection: (sectionId: string) => void
   reorderSections: (chapterId: string, orderedIds: string[]) => void
 
@@ -406,18 +407,20 @@ export const useBookStore = create<Store>()(
             const order = b.sections.filter((s) => s.chapterId === chapterId).length + 1
             return { ...b, sections: [...b.sections, makeSection(chapterId, order, Date.now())] }
           }),
-        // Insert a blank section at a position among the chapter's sections.
-        insertSection: (chapterId, index) =>
+        // Insert a block (section / separator / image) at a position.
+        insertSection: (chapterId, index, kind = 'section') =>
           patchBook((b) => {
             const secs = b.sections
               .filter((s) => s.chapterId === chapterId)
               .sort((a, c) => a.order - c.order)
             const at = Math.max(0, Math.min(index, secs.length))
-            secs.splice(at, 0, makeSection(chapterId, 0, Date.now()))
+            secs.splice(at, 0, makeSection(chapterId, 0, Date.now(), kind))
             const renum = secs.map((s, i) => ({ ...s, order: i + 1 }))
             const others = b.sections.filter((s) => s.chapterId !== chapterId)
             return { ...b, sections: [...others, ...renum] }
           }),
+        setSectionImage: (sectionId, imageId) =>
+          patchBook((b) => mapSections(b, (s) => (s.id === sectionId ? { ...s, imageId, updatedAt: Date.now() } : s))),
         // Never let a chapter drop below one section (mono-section chapters stay usable).
         removeSection: (sectionId) =>
           patchBook((b) => {

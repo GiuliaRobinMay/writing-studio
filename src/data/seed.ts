@@ -276,10 +276,16 @@ export function makeChapter(
   return { chapter, sections }
 }
 
-export function makeSection(chapterId: string, order: number, now: number): Section {
+export function makeSection(
+  chapterId: string,
+  order: number,
+  now: number,
+  kind: 'section' | 'separator' | 'image' = 'section',
+): Section {
   return {
     id: uid('sec'),
     chapterId,
+    kind,
     label: '',
     title: '',
     placeholder: 'Section title…',

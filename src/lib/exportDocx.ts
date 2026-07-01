@@ -90,8 +90,19 @@ export async function bookToDocxBlob(
     children.push(new Paragraph({ text: label, heading: HeadingLevel.HEADING_1, pageBreakBefore: true, spacing: { after: 120 } }))
     if (ch.tagline) children.push(new Paragraph({ children: [new TextRun({ text: ch.tagline, italics: true })], spacing: { after: 240 } }))
 
-    const chSections = sectionsOf(sections, ch.id).filter((s) => !isHtmlEmpty(s.body))
+    const chSections = sectionsOf(sections, ch.id).filter(
+      (s) => s.kind === 'separator' || s.kind === 'image' || !isHtmlEmpty(s.body),
+    )
     for (const sec of chSections) {
+      if (sec.kind === 'separator') {
+        children.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun('✳  ✳  ✳')], spacing: { before: 160, after: 160 } }))
+        continue
+      }
+      if (sec.kind === 'image') {
+        // Images aren't embedded in the Word export yet — keep the caption as a placeholder.
+        if (sec.title.trim()) children.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `[image: ${sec.title}]`, italics: true })] }))
+        continue
+      }
       if (sec.title.trim()) children.push(new Paragraph({ text: sec.title, heading: HeadingLevel.HEADING_2 }))
       children.push(...htmlToParagraphs(sec.body))
     }

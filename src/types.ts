@@ -29,9 +29,15 @@ export interface ChapterTemplate {
 }
 
 // ── Sections ───────────────────────────────────────────────────────────────
+export type SectionKind = 'section' | 'separator' | 'image'
+
 export interface Section {
   id: string
   chapterId: string
+  /** Block type: a writing section, a visual separator, or an image. */
+  kind?: SectionKind
+  /** For image blocks — the idb key (img:<id>) of the picture. */
+  imageId?: string
   /** Structural label from the template part ('' for a freeform section). */
   label: string
   /** Printed heading. Empty → the placeholder shows, fill in if you like. */
