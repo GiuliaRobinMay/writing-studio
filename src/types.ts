@@ -126,6 +126,24 @@ export interface Reference {
   citingChapters: string[]
 }
 
+// KDP-facing metadata gathered in the PUBLISH cockpit.
+export interface PublishMeta {
+  subtitle: string
+  description: string
+  keywords: string
+  categories: string
+  isbn: string
+  trimSize: string
+  ebookPrice: string
+  launchDate: string
+}
+
+// The publish plan: metadata + which checklist items are done (by item id).
+export interface PublishPlan {
+  meta: PublishMeta
+  done: Record<string, boolean>
+}
+
 // A margin note anchored to a highlighted span of text (the anchor lives in the
 // section body HTML as <span data-note-id>; the content lives here).
 export interface Note {
@@ -177,6 +195,8 @@ export interface Book {
   resources: Resource[]
   /** Margin notes anchored to text in this book's sections. */
   notes: Note[]
+  /** The self-publish plan (PUBLISH cockpit). */
+  publish?: PublishPlan
   createdAt: number
   updatedAt: number
 }

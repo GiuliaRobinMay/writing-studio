@@ -79,6 +79,7 @@ export function Layout() {
               Write
             </NavLink>
             <NavLink to="/read">Read</NavLink>
+            <NavLink to="/publish">Publish</NavLink>
             <MoreMenu />
           </nav>
         )}

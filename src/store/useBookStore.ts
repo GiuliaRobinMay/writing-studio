@@ -7,6 +7,7 @@ import type {
   Chapter,
   ChapterTemplate,
   ChapterWorkspace,
+  PublishMeta,
   Reference,
   Resource,
   ResourceKind,
@@ -61,6 +62,9 @@ interface Actions {
   updateReference: (id: string, patch: Partial<Omit<Reference, 'id'>>) => void
   removeReference: (id: string) => void
 
+  updatePublishMeta: (patch: Partial<PublishMeta>) => void
+  setPublishDone: (itemId: string, done: boolean) => void
+
   updateAbout: (key: string, value: string) => void
   addResource: (r: { title: string; kind: ResourceKind; text: string; source?: string }) => void
   updateResource: (id: string, patch: Partial<Omit<Resource, 'id' | 'createdAt'>>) => void
@@ -114,6 +118,13 @@ function renumber(chapters: Chapter[], now: number): Chapter[] {
 
 export function emptyWorkspace(): ChapterWorkspace {
   return { idea: '', purpose: '', outcome: '', notes: '', resources: [], quotes: [], images: [] }
+}
+
+export function emptyPublish() {
+  return {
+    meta: { subtitle: '', description: '', keywords: '', categories: '', isbn: '', trimSize: '', ebookPrice: '', launchDate: '' },
+    done: {} as Record<string, boolean>,
+  }
 }
 
 const stripHtml = (h: string) => h.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
@@ -189,6 +200,18 @@ export const useBookStore = create<Store>()(
           })),
         removeReference: (id) =>
           patchBook((b) => ({ ...b, references: b.references.filter((r) => r.id !== id) })),
+
+        // ── Publish plan ──
+        updatePublishMeta: (patch) =>
+          patchBook((b) => {
+            const pub = b.publish ?? emptyPublish()
+            return { ...b, publish: { ...pub, meta: { ...pub.meta, ...patch } } }
+          }),
+        setPublishDone: (itemId, done) =>
+          patchBook((b) => {
+            const pub = b.publish ?? emptyPublish()
+            return { ...b, publish: { ...pub, done: { ...pub.done, [itemId]: done } } }
+          }),
 
         // ── Foundation: survey + resources ──
         updateAbout: (key, value) =>
