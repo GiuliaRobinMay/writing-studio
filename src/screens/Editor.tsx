@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   DndContext,
@@ -15,7 +15,7 @@ import { countWords } from '../lib/text'
 import type { Section } from '../types'
 import { StatusSelect } from '../components/StatusChip'
 import { SectionEditor } from '../components/SectionEditor'
-import { ChapterWorkspace } from '../components/ChapterWorkspace'
+import { ChapterMenu } from '../components/ChapterSub'
 
 /** A draggable section, with the grip wired to dnd-kit. */
 function SortableSection({ section, canDelete }: { section: Section; canDelete: boolean }) {
@@ -65,14 +65,11 @@ export function Editor() {
   const navigate = useNavigate()
   const chapters = useBookStore((s) => currentBook(s).chapters)
   const sections = useBookStore((s) => currentBook(s).sections)
-  const templates = useBookStore((s) => currentBook(s).templates)
   const setChapterStatus = useBookStore((s) => s.setChapterStatus)
   const updateChapterMeta = useBookStore((s) => s.updateChapterMeta)
-  const applyStructure = useBookStore((s) => s.applyStructure)
   const addSection = useBookStore((s) => s.addSection)
   const reorderSections = useBookStore((s) => s.reorderSections)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
-  const [showWorkspace, setShowWorkspace] = useState(false)
 
   const ordered = useMemo(() => chaptersSorted(chapters), [chapters])
   const chapter = chapters.find((c) => c.id === chapterId)
@@ -84,7 +81,6 @@ export function Editor() {
   const prev = idx > 0 ? ordered[idx - 1] : undefined
   const next = idx >= 0 && idx < ordered.length - 1 ? ordered[idx + 1] : undefined
   const chapterWords = chSections.reduce((sum, s) => sum + countWords(s.body), 0)
-  const chapterEmpty = chSections.every((s) => !s.title.trim() && !s.body.trim())
 
   function onSectionDragEnd(e: DragEndEvent) {
     const { active, over } = e
@@ -115,15 +111,6 @@ export function Editor() {
     )
   }
 
-  function onStructureChange(value: string) {
-    const templateId = value || null
-    if (templateId && templateId !== chapter!.templateId && !chapterEmpty) {
-      if (!confirm("This chapter already has content. The structure's sections will be added below — nothing is deleted. Continue?"))
-        return
-    }
-    applyStructure(chapter!.id, templateId)
-  }
-
   return (
     <main className="page editor">
       <div className="editor-main">
@@ -131,11 +118,10 @@ export function Editor() {
           <div className="ech-top">
             <span className="ech-num">Chapter {String(chapter.number).padStart(2, '0')}</span>
             <div className="ech-actions">
-              <span className="ech-wc">{chapterWords.toLocaleString()} words</span>
-              <StatusSelect status={chapter.status} onChange={(s) => setChapterStatus(chapter.id, s)} stop={false} />
               <Link className="btn" to={`/read/${chapter.id}`}>
                 Read ↗
               </Link>
+              <ChapterMenu chapterId={chapter.id} />
             </div>
           </div>
           <input
@@ -150,25 +136,11 @@ export function Editor() {
             placeholder="Tagline / subtitle (optional)…"
             onChange={(e) => updateChapterMeta(chapter.id, { tagline: e.target.value })}
           />
-          <div className="ech-structure">
-            <span className="ech-structure-lbl">Structure</span>
-            <select value={chapter.templateId ?? ''} onChange={(e) => onStructureChange(e.target.value)}>
-              <option value="">No structure (freeform)</option>
-              {templates.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-            <span className="ech-structure-hint">Apply a structure, or write freely.</span>
+          <div className="ech-meta">
+            <span className="ech-wc">{chapterWords.toLocaleString()} words</span>
+            <StatusSelect status={chapter.status} onChange={(s) => setChapterStatus(chapter.id, s)} stop={false} />
           </div>
         </div>
-
-        <button className={`ws-toggle${showWorkspace ? ' open' : ''}`} onClick={() => setShowWorkspace((o) => !o)}>
-          <span className="ws-toggle-chev">{showWorkspace ? '▾' : '▸'}</span>
-          Chapter workspace — brief, materials, quotes &amp; images
-        </button>
-        {showWorkspace && <ChapterWorkspace chapterId={chapter.id} />}
 
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onSectionDragEnd}>
           <SortableContext items={chSections.map((s) => s.id)} strategy={verticalListSortingStrategy}>

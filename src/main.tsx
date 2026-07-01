@@ -6,6 +6,9 @@ import { Dashboard } from './screens/Dashboard'
 import { Overview } from './screens/Overview'
 import { About } from './screens/About'
 import { Editor } from './screens/Editor'
+import { ChapterBrief } from './screens/ChapterBrief'
+import { ChapterResources } from './screens/ChapterResources'
+import { ChapterSettings } from './screens/ChapterSettings'
 import { FocusSection } from './screens/FocusSection'
 import { Reader } from './screens/Reader'
 import { Settings } from './screens/Settings'
@@ -30,6 +33,9 @@ const router = createHashRouter([
       { path: 'overview', element: <Overview /> },
       { path: 'about', element: <About /> },
       { path: 'chapter/:chapterId', element: <Editor /> },
+      { path: 'chapter/:chapterId/brief', element: <ChapterBrief /> },
+      { path: 'chapter/:chapterId/resources', element: <ChapterResources /> },
+      { path: 'chapter/:chapterId/settings', element: <ChapterSettings /> },
       { path: 'chapter/:chapterId/section/:sectionId', element: <FocusSection /> },
       { path: 'read', element: <Reader /> },
       { path: 'read/:chapterId', element: <Reader /> },

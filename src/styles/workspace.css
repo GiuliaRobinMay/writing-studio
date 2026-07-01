@@ -1,3 +1,8 @@
+/* ── Chapter sub-pages (Brief / Resources / Settings) ───────────────────── */
+.chsub { max-width: 820px; }
+.chsub-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.chsub-ctx { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin-bottom: 8px; }
+
 /* ── Chapter workspace ──────────────────────────────────────────────────── */
 .ws-toggle {
   display: flex; align-items: center; gap: 8px; width: 100%;

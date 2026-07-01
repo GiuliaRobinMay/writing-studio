@@ -30,6 +30,8 @@
   border: none; background: none; width: 100%; padding: 2px 0;
 }
 .ech-title:focus, .ech-tagline:focus, .sec-edit-title:focus { outline: none; box-shadow: 0 1px 0 var(--accent); }
+/* Word count + status, left-aligned under the tagline */
+.ech-meta { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
 
 /* Per-chapter structure selector */
 .ech-structure { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
