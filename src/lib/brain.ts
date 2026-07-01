@@ -1,10 +1,10 @@
 // Client for the local BIG TRIBE BRAIN service (server/). Read-only.
 
-const DEFAULT_BASE = 'http://localhost:5274'
-
+// A custom URL (Settings) wins. Otherwise: local brain server in dev,
+// same-origin Vercel functions (/api) in production.
 function base(endpoint?: string): string {
   if (endpoint && /^https?:\/\//i.test(endpoint)) return endpoint.replace(/\/$/, '')
-  return DEFAULT_BASE
+  return import.meta.env.DEV ? 'http://localhost:5274' : '/api'
 }
 
 export interface BrainChunk {

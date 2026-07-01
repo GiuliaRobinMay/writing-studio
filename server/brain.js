@@ -18,7 +18,12 @@ async function client(config) {
       "@google-cloud/bigquery is not installed. Run `npm install @google-cloud/bigquery` in /server to go live.",
     )
   }
-  bq = new BigQuery({ projectId: config.projectId, keyFilename: config.keyFile, location: config.location })
+  bq = new BigQuery({
+    projectId: config.projectId,
+    location: config.location,
+    // Local dev uses a key file; Vercel passes the parsed credentials object.
+    ...(config.credentials ? { credentials: config.credentials } : { keyFilename: config.keyFile }),
+  })
   return bq
 }
 
