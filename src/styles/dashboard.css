@@ -1,5 +1,5 @@
 /* ── Library dashboard ──────────────────────────────────────────────────── */
-.dashboard { max-width: 1000px; }
+.dashboard { max-width: 1120px; }
 
 .studio-head { text-align: center; margin: 12px 0 46px; }
 .studio-name {
@@ -20,7 +20,7 @@
 /* Shelves */
 .shelves { display: flex; flex-direction: column; gap: 40px; }
 .shelf-books {
-  display: flex; gap: 36px; align-items: flex-end; padding: 0 6px; min-height: 244px;
+  display: flex; justify-content: center; gap: 36px; align-items: flex-end; padding: 0 6px; min-height: 244px;
 }
 /* The shelf is just a fine line. */
 .shelf-board {

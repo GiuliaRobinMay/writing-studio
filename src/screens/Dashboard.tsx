@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useBookStore } from '../store/useBookStore'
 import type { Book } from '../types'
@@ -77,8 +78,27 @@ export function Dashboard() {
   const studioOwner = useBookStore((s) => s.studioOwner)
   const updateStudio = useBookStore((s) => s.updateStudio)
 
+  // How many books fit per shelf, based on the shelf's real width.
+  const shelvesRef = useRef<HTMLDivElement>(null)
+  const [perRow, setPerRow] = useState(4)
+  useEffect(() => {
+    const el = shelvesRef.current
+    if (!el) return
+    const BOOK = 152
+    const GAP = 36
+    const compute = () => {
+      const w = el.clientWidth
+      const n = Math.max(2, Math.min(5, Math.floor((w + GAP) / (BOOK + GAP))))
+      setPerRow(n)
+    }
+    compute()
+    const ro = new ResizeObserver(compute)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   const slots: (Book | 'add')[] = [...books, 'add']
-  const shelves = chunk(slots, 3)
+  const shelves = chunk(slots, perRow)
 
   return (
     <main className="page dashboard">
@@ -101,7 +121,7 @@ export function Dashboard() {
         </div>
       </header>
 
-      <div className="shelves">
+      <div className="shelves" ref={shelvesRef}>
         {shelves.map((shelf, i) => (
           <div className="shelf" key={i}>
             <div className="shelf-books">
