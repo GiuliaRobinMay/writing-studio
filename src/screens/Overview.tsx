@@ -15,8 +15,8 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { chaptersSorted, currentBook, sectionsOf, useBookStore } from '../store/useBookStore'
-import type { Chapter, Section, Status } from '../types'
-import { STATUS_META, STATUS_ORDER } from '../lib/status'
+import type { Chapter, Section } from '../types'
+import { STATUS_META } from '../lib/status'
 import { countWords, estimatePages } from '../lib/text'
 import { StatusChip, StatusSelect } from '../components/StatusChip'
 
@@ -27,7 +27,6 @@ export function Overview() {
   const sections = useBookStore((s) => currentBook(s).sections)
   const reorderChapters = useBookStore((s) => s.reorderChapters)
   const addChapter = useBookStore((s) => s.addChapter)
-  const [filter, setFilter] = useState<Status | 'all'>('all')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   function handleAddChapter() {
@@ -57,15 +56,6 @@ export function Overview() {
     const drafted = sections.length ? Math.round((weightSum / sections.length) * 100) : 0
     return { wordsByChapter, totalWords, finished, drafted, totalPages: estimatePages(totalWords) }
   }, [chapters, sections])
-
-  const visible =
-    filter === 'all'
-      ? ordered
-      : ordered.filter(
-          (ch) =>
-            ch.status === filter ||
-            sectionsOf(sections, ch.id).some((s) => s.status === filter),
-        )
 
   function onDragEnd(e: DragEndEvent) {
     const { active, over } = e
@@ -117,27 +107,10 @@ export function Overview() {
         </div>
       </section>
 
-      <div className="filters">
-        <span className="flabel">Filter</span>
-        <button className={`filter-btn ${filter === 'all' ? 'on' : ''}`} onClick={() => setFilter('all')}>
-          All
-        </button>
-        {STATUS_ORDER.map((s) => (
-          <button
-            key={s}
-            className={`filter-btn ${filter === s ? 'on' : ''}`}
-            onClick={() => setFilter(s)}
-            style={filter === s ? undefined : { color: STATUS_META[s].color }}
-          >
-            {STATUS_META[s].label}
-          </button>
-        ))}
-      </div>
-
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <SortableContext items={visible.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+        <SortableContext items={ordered.map((c) => c.id)} strategy={verticalListSortingStrategy}>
           <div className="ch-list">
-            {visible.map((ch) => (
+            {ordered.map((ch) => (
               <ChapterCard
                 key={ch.id}
                 chapter={ch}
@@ -150,13 +123,10 @@ export function Overview() {
           </div>
         </SortableContext>
       </DndContext>
-      {visible.length === 0 && <p className="empty">No chapters match this filter.</p>}
 
-      {filter === 'all' && (
-        <button className="add-chapter" onClick={handleAddChapter}>
-          <span className="plus">+</span> Add a chapter
-        </button>
-      )}
+      <button className="add-chapter" onClick={handleAddChapter}>
+        <span className="plus">+</span> Add a chapter
+      </button>
     </main>
   )
 }

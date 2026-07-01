@@ -63,8 +63,8 @@ export function Layout() {
   const studioName = useBookStore((s) => s.studioName)
   const path = useLocation().pathname
   const onDashboard = path === '/'
-  // Focus mode is full-bleed — no topbar, just the section.
-  if (path.includes('/section/')) return <Outlet />
+  // Focus mode and the new-book wizard are full-bleed — no topbar.
+  if (path.includes('/section/') || path === '/onboarding') return <Outlet />
 
   return (
     <div className="app">

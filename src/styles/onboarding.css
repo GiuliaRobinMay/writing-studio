@@ -1,0 +1,47 @@
+/* ── New-book onboarding wizard ─────────────────────────────────────────── */
+.onboarding {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+}
+
+.onb-card {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lift);
+  padding: 40px 36px 28px;
+}
+
+.onb-skip {
+  position: absolute; top: 16px; right: 18px;
+  background: none; border: none; cursor: pointer;
+  font-family: var(--sans); font-size: 12.5px; font-weight: 600; color: var(--ink-faint);
+}
+.onb-skip:hover { color: var(--accent); }
+
+.onb-dots { display: flex; gap: 7px; margin-bottom: 22px; }
+.onb-dots span { width: 22px; height: 4px; border-radius: 999px; background: var(--line); transition: background 0.2s; }
+.onb-dots span.done { background: var(--accent-soft); }
+.onb-dots span.on { background: var(--accent); }
+
+.onb-title { font-family: var(--serif); font-size: 26px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.01em; }
+.onb-blurb { font-size: 14px; color: var(--ink-soft); line-height: 1.5; margin: 0 0 22px; }
+
+.onb-fields { display: flex; flex-direction: column; gap: 16px; }
+.onb-fields .field span { font-size: 12.5px; font-weight: 600; color: var(--ink-soft); }
+.onb-fields input,
+.onb-fields textarea {
+  font-family: var(--sans); font-size: 14.5px; color: var(--ink); line-height: 1.5;
+  background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-sm);
+  padding: 10px 12px; width: 100%; resize: vertical;
+}
+.onb-fields input:focus,
+.onb-fields textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+
+.onb-nav { display: flex; align-items: center; justify-content: space-between; margin-top: 28px; }

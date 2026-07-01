@@ -13,6 +13,7 @@ import { FocusSection } from './screens/FocusSection'
 import { Reader } from './screens/Reader'
 import { Publish } from './screens/Publish'
 import { Grow } from './screens/Grow'
+import { Onboarding } from './screens/Onboarding'
 import { Settings } from './screens/Settings'
 import './styles/theme.css'
 import './styles/app.css'
@@ -25,6 +26,7 @@ import './styles/settings.css'
 import './styles/notes.css'
 import './styles/workspace.css'
 import './styles/publish.css'
+import './styles/onboarding.css'
 
 // Hash router → works when opened from the file system or any static host.
 const router = createHashRouter([
@@ -44,6 +46,7 @@ const router = createHashRouter([
       { path: 'read/:chapterId', element: <Reader /> },
       { path: 'publish', element: <Publish /> },
       { path: 'grow', element: <Grow /> },
+      { path: 'onboarding', element: <Onboarding /> },
       { path: 'settings', element: <Settings /> },
     ],
   },

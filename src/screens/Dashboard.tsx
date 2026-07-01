@@ -54,7 +54,7 @@ function AddBookSlot() {
         className="book-cover add"
         onClick={() => {
           addBook()
-          navigate('/settings')
+          navigate('/onboarding')
         }}
         title="Add a new book"
       >
