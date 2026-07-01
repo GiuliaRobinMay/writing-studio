@@ -12,6 +12,7 @@ import { ChapterSettings } from './screens/ChapterSettings'
 import { FocusSection } from './screens/FocusSection'
 import { Reader } from './screens/Reader'
 import { Publish } from './screens/Publish'
+import { Grow } from './screens/Grow'
 import { Settings } from './screens/Settings'
 import './styles/theme.css'
 import './styles/app.css'
@@ -42,6 +43,7 @@ const router = createHashRouter([
       { path: 'read', element: <Reader /> },
       { path: 'read/:chapterId', element: <Reader /> },
       { path: 'publish', element: <Publish /> },
+      { path: 'grow', element: <Grow /> },
       { path: 'settings', element: <Settings /> },
     ],
   },

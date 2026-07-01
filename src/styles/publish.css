@@ -39,3 +39,28 @@
 .meta-hint { color: var(--ink-faint); font-weight: 400; font-style: italic; font-size: 11.5px; }
 
 .pub-foot { margin-top: 8px; }
+
+/* ── Grow cockpit ───────────────────────────────────────────────────────── */
+.grow-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.grow-metric { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px 14px; background: var(--paper); }
+.grow-metric-label { font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+.grow-metric-input {
+  width: 100%; font-family: var(--serif); font-size: 24px; font-weight: 600; color: var(--accent);
+  border: none; background: none; padding: 4px 0; margin: 2px 0;
+}
+.grow-metric-input:focus { outline: none; box-shadow: 0 1px 0 var(--accent); }
+.grow-metric-hint { font-size: 11px; color: var(--ink-faint); line-height: 1.4; }
+
+.grow-offers { display: flex; flex-direction: column; gap: 8px; }
+.grow-offer { display: grid; grid-template-columns: 1fr 1.3fr auto; gap: 8px; align-items: center; }
+.grow-offer input {
+  font-family: var(--sans); font-size: 13.5px; color: var(--ink);
+  background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 10px;
+}
+.grow-offer input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+.grow-offer-name { font-weight: 600; }
+
+@media (max-width: 640px) {
+  .grow-offer { grid-template-columns: 1fr auto; }
+  .grow-offer-note { grid-column: 1 / 2; }
+}

@@ -144,6 +144,20 @@ export interface PublishPlan {
   done: Record<string, boolean>
 }
 
+// A back-end offer the book funnels readers toward (course, retreat, service…).
+export interface GrowOffer {
+  id: string
+  name: string
+  note: string
+}
+
+// The Grow plan: tracked metrics, tour checklist state, and the flywheel offers.
+export interface GrowPlan {
+  metrics: Record<string, string>
+  done: Record<string, boolean>
+  offers: GrowOffer[]
+}
+
 // A margin note anchored to a highlighted span of text (the anchor lives in the
 // section body HTML as <span data-note-id>; the content lives here).
 export interface Note {
@@ -197,6 +211,8 @@ export interface Book {
   notes: Note[]
   /** The self-publish plan (PUBLISH cockpit). */
   publish?: PublishPlan
+  /** The six-month Grow plan (GROW cockpit). */
+  grow?: GrowPlan
   createdAt: number
   updatedAt: number
 }

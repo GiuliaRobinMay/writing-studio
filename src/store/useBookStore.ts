@@ -7,6 +7,7 @@ import type {
   Chapter,
   ChapterTemplate,
   ChapterWorkspace,
+  GrowPlan,
   PublishMeta,
   Reference,
   Resource,
@@ -64,6 +65,7 @@ interface Actions {
 
   updatePublishMeta: (patch: Partial<PublishMeta>) => void
   setPublishDone: (itemId: string, done: boolean) => void
+  updateGrow: (patch: Partial<GrowPlan>) => void
 
   updateAbout: (key: string, value: string) => void
   addResource: (r: { title: string; kind: ResourceKind; text: string; source?: string }) => void
@@ -125,6 +127,10 @@ export function emptyPublish() {
     meta: { subtitle: '', description: '', keywords: '', categories: '', isbn: '', trimSize: '', ebookPrice: '', launchDate: '' },
     done: {} as Record<string, boolean>,
   }
+}
+
+export function emptyGrow(): GrowPlan {
+  return { metrics: {}, done: {}, offers: [] }
 }
 
 const stripHtml = (h: string) => h.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
@@ -212,6 +218,8 @@ export const useBookStore = create<Store>()(
             const pub = b.publish ?? emptyPublish()
             return { ...b, publish: { ...pub, done: { ...pub.done, [itemId]: done } } }
           }),
+        updateGrow: (patch) =>
+          patchBook((b) => ({ ...b, grow: { ...emptyGrow(), ...b.grow, ...patch } })),
 
         // ── Foundation: survey + resources ──
         updateAbout: (key, value) =>

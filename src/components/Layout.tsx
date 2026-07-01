@@ -80,6 +80,7 @@ export function Layout() {
             </NavLink>
             <NavLink to="/read">Read</NavLink>
             <NavLink to="/publish">Publish</NavLink>
+            <NavLink to="/grow">Grow</NavLink>
             <MoreMenu />
           </nav>
         )}
