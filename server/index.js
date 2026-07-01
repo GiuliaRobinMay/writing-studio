@@ -74,6 +74,22 @@ const server = createServer(async (req, res) => {
       return send(res, 200, { mode: 'live', results: await brain.textSearch(config, query, topK) })
     }
 
+    // ── Claude connection (section drafting) ──
+    if (url.pathname === '/claude/health') {
+      if (!process.env.ANTHROPIC_API_KEY) {
+        return send(res, 200, { ok: true, mode: 'demo', message: 'Claude not connected — set ANTHROPIC_API_KEY to go live' })
+      }
+      return send(res, 200, { ok: true, mode: 'live', message: 'Claude connected' })
+    }
+
+    if (url.pathname === '/claude/draft' && req.method === 'POST') {
+      const payload = await readBody(req)
+      if (!process.env.ANTHROPIC_API_KEY) return send(res, 200, { mode: 'demo' })
+      const { draftSection } = await import('./claude.js')
+      const { text, model } = await draftSection(process.env.ANTHROPIC_API_KEY, payload)
+      return send(res, 200, { mode: 'live', draft: text, model })
+    }
+
     return send(res, 404, { error: 'Not found' })
   } catch (e) {
     console.error('Brain error:', e.message)

@@ -1,4 +1,3 @@
-import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { createHashRouter, RouterProvider } from 'react-router-dom'
 import { Layout } from './components/Layout'
@@ -52,8 +51,9 @@ const router = createHashRouter([
   },
 ])
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <RouterProvider router={router} />
-  </React.StrictMode>,
-)
+// Note: no <React.StrictMode>. StrictMode double-invokes mount/unmount in dev,
+// which amplifies a TipTap editor teardown quirk ("Failed to execute
+// 'removeChild'") on section navigation. StrictMode is inert in production, so
+// dropping it makes dev mirror prod. The teardown itself is guarded by
+// <EditorBoundary> around the editor so a transient unmount error self-recovers.
+ReactDOM.createRoot(document.getElementById('root')!).render(<RouterProvider router={router} />)

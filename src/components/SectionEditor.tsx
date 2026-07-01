@@ -13,6 +13,7 @@ import { Uppercase } from '../lib/uppercase'
 import { NoteMark } from '../lib/notemark'
 import { resizeImageFile } from '../lib/image'
 import { getImage, setImage } from '../lib/imagestore'
+import { EditorBoundary } from './EditorBoundary'
 
 /** Treat an editor that holds only empty markup as truly empty. */
 const norm = (html: string) => (isHtmlEmpty(html) ? '' : html)
@@ -79,10 +80,13 @@ export function SectionWriter({
   section,
   onWords,
   titleClass = 'sec-edit-title',
+  contentVersion,
 }: {
   section: Section
   onWords?: (n: number) => void
   titleClass?: string
+  /** Bump to imperatively reload the editor from section.body (e.g. after an AI draft is placed). */
+  contentVersion?: number
 }) {
   const updateBody = useBookStore((s) => s.updateSectionBody)
   const updateTitle = useBookStore((s) => s.updateSectionTitle)
@@ -117,6 +121,19 @@ export function SectionWriter({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor])
+
+  // Imperatively reload the editor when a draft is placed — replacing content
+  // via setContent (not a remount) keeps React and ProseMirror from fighting
+  // over the DOM.
+  const seenVersion = useRef(contentVersion)
+  useEffect(() => {
+    if (!editor) return
+    if (contentVersion === seenVersion.current) return
+    seenVersion.current = contentVersion
+    editor.commands.setContent(section.body || '', false)
+    onWords?.(countWords(section.body || ''))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentVersion, editor])
 
   // Let the user's Grammarly browser extension run inside the editor (or not).
   useEffect(() => {
@@ -239,7 +256,9 @@ export function SectionEditor({
           )}
         </div>
       </div>
-      <SectionWriter section={section} onWords={setWords} />
+      <EditorBoundary resetKey={section.id}>
+        <SectionWriter section={section} onWords={setWords} />
+      </EditorBoundary>
     </section>
   )
 }

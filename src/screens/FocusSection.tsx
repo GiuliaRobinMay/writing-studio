@@ -1,21 +1,42 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { currentBook, sectionsOf, useBookStore } from '../store/useBookStore'
-import { countWords } from '../lib/text'
+import { countWords, isHtmlEmpty } from '../lib/text'
 import { StatusSelect } from '../components/StatusChip'
 import { SectionWriter } from '../components/SectionEditor'
 import { getVoiceNote, setVoiceNote, delVoiceNote, blobToDataUrl } from '../lib/voicenote'
+import { claudeHealth, draftSection } from '../lib/claude'
+import { EditorBoundary } from '../components/EditorBoundary'
 
-function BriefPanel({ sectionId }: { sectionId: string }) {
+/** Turn Claude's plain-text paragraphs into safe HTML for the editor. */
+function draftToHtml(text: string): string {
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  return text
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`)
+    .join('')
+}
+
+function BriefPanel({ sectionId, onInserted }: { sectionId: string; onInserted?: () => void }) {
   const brief = useBookStore((s) => currentBook(s).sections.find((x) => x.id === sectionId)?.brief ?? '')
   const updateBrief = useBookStore((s) => s.updateSectionBrief)
-  const brainConnected = useBookStore((s) => currentBook(s).settings.brain.connected)
+  const updateBody = useBookStore((s) => s.updateSectionBody)
+  const book = useBookStore((s) => currentBook(s))
+  const section = book.sections.find((x) => x.id === sectionId)
+  const chapter = book.chapters.find((c) => c.id === section?.chapterId)
 
   const [open, setOpen] = useState(false)
   const [recording, setRecording] = useState(false)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [recError, setRecError] = useState<string | null>(null)
   const [draftMsg, setDraftMsg] = useState<string | null>(null)
+  const [drafting, setDrafting] = useState(false)
+  const [draft, setDraft] = useState<string | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [status, setStatus] = useState<'demo' | 'live' | null>(null)
   const recRef = useRef<MediaRecorder | null>(null)
 
   useEffect(() => {
@@ -25,6 +46,18 @@ function BriefPanel({ sectionId }: { sectionId: string }) {
       alive = false
     }
   }, [sectionId])
+
+  // Check whether Claude is connected when the panel opens (for the status line).
+  useEffect(() => {
+    if (!open) return
+    let alive = true
+    claudeHealth()
+      .then((h) => alive && setStatus(h.mode))
+      .catch(() => alive && setStatus(null))
+    return () => {
+      alive = false
+    }
+  }, [open])
 
   async function startRec() {
     setRecError(null)
@@ -56,12 +89,54 @@ function BriefPanel({ sectionId }: { sectionId: string }) {
     setAudioUrl(null)
   }
 
-  function draft() {
-    setDraftMsg(
-      'AI drafting isn’t connected yet. Once Claude is wired up (Settings), it will write a first draft from this brief' +
-        (brainConnected ? ', your brain,' : '') +
-        ' and your tone of voice — for you to redact. Your brief is saved and ready.',
-    )
+  async function generateDraft() {
+    setErr(null)
+    setDraftMsg(null)
+    setDraft(null)
+    setDrafting(true)
+    try {
+      const res = await draftSection({
+        voice: book.settings.toneOfVoice,
+        bookTitle: book.title,
+        chapterTitle: chapter?.title,
+        sectionLabel: section?.label,
+        sectionTitle: section?.title,
+        brief,
+        sources: section?.sources ?? [],
+      })
+      setStatus(res.mode)
+      if (res.mode === 'demo') {
+        setDraftMsg(
+          'Claude isn’t connected yet. Add your Anthropic API key in Vercel (ANTHROPIC_API_KEY) and this button will draft this section from your brief and tone of voice — for you to redact. Your brief is saved.',
+        )
+      } else {
+        setDraft(res.draft ?? '')
+      }
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Something went wrong drafting this section.')
+    } finally {
+      setDrafting(false)
+    }
+  }
+
+  async function copyDraft() {
+    if (!draft) return
+    try {
+      await navigator.clipboard.writeText(draft)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function useDraft() {
+    if (!draft) return
+    const hasText = !isHtmlEmpty(section?.body ?? '')
+    if (hasText && !confirm('Replace this section’s current text with the draft? Your current text will be overwritten.')) return
+    updateBody(sectionId, draftToHtml(draft))
+    setDraft(null)
+    onInserted?.()
   }
 
   return (
@@ -97,9 +172,40 @@ function BriefPanel({ sectionId }: { sectionId: string }) {
           </div>
           {recError && <p className="brief-err">{recError}</p>}
           <div className="brief-draft">
-            <button className="btn primary" onClick={draft}>Draft this section with AI →</button>
+            <button className="btn primary" onClick={generateDraft} disabled={drafting}>
+              {drafting ? 'Drafting…' : 'Draft this section with Claude →'}
+            </button>
+            {status && (
+              <span className={`claude-status ${status}`}>
+                <span className="dot" /> Claude · {status === 'live' ? 'connected' : 'demo mode'}
+              </span>
+            )}
           </div>
+          {err && <p className="brief-err">{err}</p>}
           {draftMsg && <p className="brief-note">{draftMsg}</p>}
+          {draft !== null && (
+            <div className="draft-card">
+              <div className="draft-card-head">
+                <span>✨ Draft · for you to review &amp; redact</span>
+                <button className="draft-x" onClick={() => setDraft(null)} title="Dismiss">✕</button>
+              </div>
+              <div className="draft-card-body">
+                {draft.split(/\n\s*\n/).map((p, i) => (
+                  <p key={i}>{p.trim()}</p>
+                ))}
+              </div>
+              <div className="draft-card-actions">
+                <button className="btn primary" onClick={useDraft}>
+                  {isHtmlEmpty(section?.body ?? '') ? 'Place in section' : 'Replace section text'}
+                </button>
+                <button className="btn ghost" onClick={copyDraft}>{copied ? 'Copied ✓' : 'Copy'}</button>
+              </div>
+              <p className="draft-card-foot">
+                Claude follows your integrity rules — it never invents stories or quotes. Bracketed
+                <code> [placeholders] </code> mark where your own specifics belong.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -121,7 +227,9 @@ export function FocusSection() {
 
   const setStatus = useBookStore((s) => s.setSectionStatus)
   const [words, setWords] = useState(() => (section ? countWords(section.body) : 0))
-  useEffect(() => setWords(section ? countWords(section.body) : 0), [sectionId]) // eslint-disable-line
+  // Bumped when a Claude draft is placed, so the writer reloads its text.
+  const [writerVersion, setWriterVersion] = useState(0)
+  useEffect(() => setWords(section ? countWords(section.body) : 0), [sectionId, writerVersion]) // eslint-disable-line
 
   if (!chapter || !section) {
     return (
@@ -153,8 +261,10 @@ export function FocusSection() {
 
       <div className="focus-body">
         <div className="focus-label">{section.label || 'Section'}</div>
-        <SectionWriter key={section.id} section={section} onWords={setWords} titleClass="focus-title" />
-        <BriefPanel sectionId={section.id} />
+        <EditorBoundary resetKey={section.id}>
+          <SectionWriter key={section.id} section={section} onWords={setWords} titleClass="focus-title" contentVersion={writerVersion} />
+        </EditorBoundary>
+        <BriefPanel sectionId={section.id} onInserted={() => setWriterVersion((v) => v + 1)} />
       </div>
 
       <div className="focus-nav">
