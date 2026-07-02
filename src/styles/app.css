@@ -50,6 +50,8 @@
 .book-switcher select:hover { border-color: var(--line-strong); }
 .book-switcher .chev { position: absolute; right: 12px; color: var(--ink-faint); font-size: 10px; pointer-events: none; }
 
+.topbar-right { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+.topbar-right .nav { margin-left: 0; }
 .nav { display: flex; gap: 4px; margin-left: auto; }
 .nav a {
   font-family: var(--sans);

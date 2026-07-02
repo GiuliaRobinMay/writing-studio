@@ -50,6 +50,8 @@ interface Actions {
 
   // ── Workspace / books ──
   updateStudio: (patch: Partial<Pick<WorkspaceState, 'studioName' | 'studioOwner'>>) => void
+  /** Replace the whole workspace with a single empty book — used by first-run onboarding for a new author. */
+  startFreshWorkspace: (opts: { owner: string; bookTitle?: string; tone?: string }) => void
   addBook: (title?: string, author?: string) => string
   switchBook: (bookId: string) => void
   removeBook: (bookId: string) => void
@@ -165,6 +167,17 @@ export const useBookStore = create<Store>()(
 
         // ── Workspace / books ──
         updateStudio: (patch) => set(patch),
+        startFreshWorkspace: ({ owner, bookTitle, tone }) => {
+          const now = Date.now()
+          const book = makeBook(bookTitle || 'Untitled Book', owner, now)
+          if (tone && tone.trim()) book.settings = { ...book.settings, toneOfVoice: tone.trim() }
+          set({
+            books: [book],
+            currentBookId: book.id,
+            studioName: 'Writing Studio',
+            studioOwner: owner || 'Writer',
+          })
+        },
         addBook: (title = 'Untitled Book', author = '') => {
           const book = makeBook(title, author, Date.now())
           set((s) => ({ books: [...s.books, book], currentBookId: book.id }))

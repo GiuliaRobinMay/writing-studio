@@ -9,3 +9,6 @@ tsconfig.tsbuildinfo
 server/config.json
 server/*-key.json
 server/brain-key.json
+
+# local env (Clerk publishable key etc.)
+.env

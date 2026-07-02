@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { AuthMenu } from './AuthMenu'
 import { currentBook, useBookStore } from '../store/useBookStore'
 import { mix, rgba } from '../lib/color'
 
@@ -73,17 +74,20 @@ export function Layout() {
           <span className="mark">✦</span>
           <span className="brand-name">{studioName || 'Writing Studio'}</span>
         </NavLink>
-        {!onDashboard && (
-          <nav className="nav">
-            <NavLink to="/overview" end>
-              Write
-            </NavLink>
-            <NavLink to="/read">Read</NavLink>
-            <NavLink to="/publish">Publish</NavLink>
-            <NavLink to="/grow">Grow</NavLink>
-            <MoreMenu />
-          </nav>
-        )}
+        <div className="topbar-right">
+          {!onDashboard && (
+            <nav className="nav">
+              <NavLink to="/overview" end>
+                Write
+              </NavLink>
+              <NavLink to="/read">Read</NavLink>
+              <NavLink to="/publish">Publish</NavLink>
+              <NavLink to="/grow">Grow</NavLink>
+              <MoreMenu />
+            </nav>
+          )}
+          <AuthMenu />
+        </div>
       </header>
       <Outlet />
     </div>
