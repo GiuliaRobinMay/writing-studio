@@ -7,6 +7,7 @@ import { isHtmlEmpty } from '../lib/text'
 import { bookToDocxBlob, downloadBlob } from '../lib/exportDocx'
 import { getImage } from '../lib/imagestore'
 import { ReaderNotes } from '../components/ReaderNotes'
+import { ReaderListen } from '../components/ReaderListen'
 
 // Must mirror reader.css page geometry so packing matches rendering.
 const CONTENT_H = 1046 - 84 - 72 // page height − top pad − bottom pad
@@ -258,6 +259,7 @@ export function Reader() {
         <span className="rb-count">
           {pages.length} {pages.length === 1 ? 'page' : 'pages'}
         </span>
+        <ReaderListen chapters={chapters} sections={sections} onlyChapterId={single?.id} />
         <div className="rb-export" ref={expRef}>
           <button className="rb-export-btn" onClick={() => setExpOpen((o) => !o)} disabled={exporting}>
             {exporting ? 'Preparing…' : '⤓ Export'}
