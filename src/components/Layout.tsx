@@ -24,7 +24,7 @@ function MoreMenu() {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const loc = useLocation()
-  const active = loc.pathname === '/about' || loc.pathname === '/settings'
+  const active = loc.pathname === '/about' || loc.pathname === '/settings' || loc.pathname === '/share'
 
   useEffect(() => {
     if (!open) return
@@ -49,6 +49,9 @@ function MoreMenu() {
         <div className="more-pop">
           <NavLink to="/about" onClick={() => setOpen(false)}>
             Foundation
+          </NavLink>
+          <NavLink to="/share" onClick={() => setOpen(false)}>
+            Show your work
           </NavLink>
           <NavLink to="/settings" onClick={() => setOpen(false)}>
             Settings
