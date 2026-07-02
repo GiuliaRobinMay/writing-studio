@@ -1,5 +1,6 @@
 import ReactDOM from 'react-dom/client'
 import { createHashRouter, RouterProvider } from 'react-router-dom'
+import { AuthGate } from './auth/AuthGate'
 import { Layout } from './components/Layout'
 import { Dashboard } from './screens/Dashboard'
 import { Overview } from './screens/Overview'
@@ -16,6 +17,7 @@ import { Onboarding } from './screens/Onboarding'
 import { Settings } from './screens/Settings'
 import './styles/theme.css'
 import './styles/app.css'
+import './styles/auth.css'
 import './styles/hints.css'
 import './styles/dashboard.css'
 import './styles/about.css'
@@ -57,4 +59,8 @@ const router = createHashRouter([
 // 'removeChild'") on section navigation. StrictMode is inert in production, so
 // dropping it makes dev mirror prod. The teardown itself is guarded by
 // <EditorBoundary> around the editor so a transient unmount error self-recovers.
-ReactDOM.createRoot(document.getElementById('root')!).render(<RouterProvider router={router} />)
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <AuthGate>
+    <RouterProvider router={router} />
+  </AuthGate>,
+)
