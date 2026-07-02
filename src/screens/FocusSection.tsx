@@ -7,6 +7,7 @@ import { SectionWriter } from '../components/SectionEditor'
 import { getVoiceNote, setVoiceNote, delVoiceNote, blobToDataUrl } from '../lib/voicenote'
 import { claudeHealth, draftSection } from '../lib/claude'
 import { EditorBoundary } from '../components/EditorBoundary'
+import { Hint } from '../components/Hint'
 
 /** Turn Claude's plain-text paragraphs into safe HTML for the editor. */
 function draftToHtml(text: string): string {
@@ -172,9 +173,11 @@ function BriefPanel({ sectionId, onInserted }: { sectionId: string; onInserted?:
           </div>
           {recError && <p className="brief-err">{recError}</p>}
           <div className="brief-draft">
-            <button className="btn primary" onClick={generateDraft} disabled={drafting}>
-              {drafting ? 'Drafting…' : 'Draft this section with Claude →'}
-            </button>
+            <Hint text="Draft this section in your voice">
+              <button className="btn primary" onClick={generateDraft} disabled={drafting}>
+                {drafting ? 'Drafting…' : 'Draft this section with Claude →'}
+              </button>
+            </Hint>
             {status && (
               <span className={`claude-status ${status}`}>
                 <span className="dot" /> Claude · {status === 'live' ? 'connected' : 'demo mode'}
