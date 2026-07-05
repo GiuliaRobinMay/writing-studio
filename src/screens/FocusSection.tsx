@@ -8,6 +8,7 @@ import { getVoiceNote, setVoiceNote, delVoiceNote, blobToDataUrl } from '../lib/
 import { claudeHealth, draftSection } from '../lib/claude'
 import { EditorBoundary } from '../components/EditorBoundary'
 import { Hint } from '../components/Hint'
+import { ContextPanel } from '../components/ContextPanel'
 
 /** Turn Claude's plain-text paragraphs into safe HTML for the editor. */
 function draftToHtml(text: string): string {
@@ -268,6 +269,7 @@ export function FocusSection() {
           <SectionWriter key={section.id} section={section} onWords={setWords} titleClass="focus-title" contentVersion={writerVersion} />
         </EditorBoundary>
         <BriefPanel sectionId={section.id} onInserted={() => setWriterVersion((v) => v + 1)} />
+        <ContextPanel sectionId={section.id} />
       </div>
 
       <div className="focus-nav">

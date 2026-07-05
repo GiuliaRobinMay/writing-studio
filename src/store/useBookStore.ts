@@ -7,6 +7,8 @@ import type {
   Chapter,
   ChapterTemplate,
   ChapterWorkspace,
+  ContextItem,
+  ContextWhy,
   GrowPlan,
   PublishMeta,
   Reference,
@@ -70,7 +72,7 @@ interface Actions {
   updateGrow: (patch: Partial<GrowPlan>) => void
 
   updateAbout: (key: string, value: string) => void
-  addResource: (r: { title: string; kind: ResourceKind; text: string; source?: string }) => void
+  addResource: (r: { title: string; kind: ResourceKind; text: string; source?: string }) => string
   updateResource: (id: string, patch: Partial<Omit<Resource, 'id' | 'createdAt'>>) => void
   removeResource: (id: string) => void
 
@@ -101,6 +103,11 @@ interface Actions {
   updateSectionBody: (sectionId: string, body: string) => void
   updateSectionTitle: (sectionId: string, title: string) => void
   updateSectionBrief: (sectionId: string, brief: string) => void
+  // Research context (the KG grounding layer)
+  addContextItem: (sectionId: string, item: Omit<ContextItem, 'id' | 'addedAt'>) => string
+  updateContextWhy: (sectionId: string, itemId: string, why: ContextWhy) => void
+  removeContextItem: (sectionId: string, itemId: string) => void
+  setContextSearched: (sectionId: string) => void
   setSectionStatus: (sectionId: string, status: Status) => void
   addSection: (chapterId: string) => void
   insertSection: (chapterId: string, index: number, kind?: 'section' | 'separator' | 'image') => void
@@ -238,14 +245,14 @@ export const useBookStore = create<Store>()(
         // ── Foundation: survey + resources ──
         updateAbout: (key, value) =>
           patchBook((b) => ({ ...b, about: { ...b.about, [key]: value } })),
-        addResource: (r) =>
+        addResource: (r) => {
+          const id = `res-${Date.now().toString(36)}-${Math.round(performance.now())}`
           patchBook((b) => ({
             ...b,
-            resources: [
-              ...b.resources,
-              { id: `res-${Date.now().toString(36)}-${b.resources.length}`, createdAt: Date.now(), ...r },
-            ],
-          })),
+            resources: [...b.resources, { id, createdAt: Date.now(), ...r }],
+          }))
+          return id
+        },
         updateResource: (id, patch) =>
           patchBook((b) => ({
             ...b,
@@ -413,6 +420,60 @@ export const useBookStore = create<Store>()(
           patchBook((b) => mapSections(b, (s) => (s.id === sectionId ? { ...s, title, updatedAt: Date.now() } : s))),
         updateSectionBrief: (sectionId, brief) =>
           patchBook((b) => mapSections(b, (s) => (s.id === sectionId ? { ...s, brief, updatedAt: Date.now() } : s))),
+
+        // ── Research context ──
+        addContextItem: (sectionId, item) => {
+          const id = `ctx-${Date.now().toString(36)}-${Math.round(performance.now())}`
+          patchBook((b) =>
+            mapSections(b, (s) => {
+              if (s.id !== sectionId) return s
+              const ctx = s.context ?? { items: [], searched: false }
+              // The same passage picked twice stays one item.
+              if (ctx.items.some((x) => x.refId === item.refId)) return s
+              return {
+                ...s,
+                context: { ...ctx, items: [...ctx.items, { ...item, id, addedAt: Date.now() }] },
+                updatedAt: Date.now(),
+              }
+            }),
+          )
+          return id
+        },
+        updateContextWhy: (sectionId, itemId, why) =>
+          patchBook((b) =>
+            mapSections(b, (s) =>
+              s.id === sectionId && s.context
+                ? {
+                    ...s,
+                    context: {
+                      ...s.context,
+                      items: s.context.items.map((x) => (x.id === itemId ? { ...x, why } : x)),
+                    },
+                    updatedAt: Date.now(),
+                  }
+                : s,
+            ),
+          ),
+        removeContextItem: (sectionId, itemId) =>
+          patchBook((b) =>
+            mapSections(b, (s) =>
+              s.id === sectionId && s.context
+                ? {
+                    ...s,
+                    context: { ...s.context, items: s.context.items.filter((x) => x.id !== itemId) },
+                    updatedAt: Date.now(),
+                  }
+                : s,
+            ),
+          ),
+        setContextSearched: (sectionId) =>
+          patchBook((b) =>
+            mapSections(b, (s) =>
+              s.id === sectionId
+                ? { ...s, context: { items: [], ...s.context, searched: true } }
+                : s,
+            ),
+          ),
         setSectionStatus: (sectionId, status) =>
           patchBook((b) => mapSections(b, (s) => (s.id === sectionId ? { ...s, status, updatedAt: Date.now() } : s))),
         addSection: (chapterId) =>

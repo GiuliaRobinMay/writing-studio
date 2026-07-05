@@ -52,7 +52,9 @@ export interface Section {
   templatePartId?: string
   /** A short brief — what this section should be about — for AI-assisted drafting. */
   brief?: string
-  /** BRAIN chunk refs (later milestone). */
+  /** Research context: selected grounding passages + why each matters. */
+  context?: SectionContext
+  /** BRAIN chunk refs (superseded by `context`; kept for stored data). */
   sources: string[]
   /** Reference refs. */
   citations: string[]
@@ -162,6 +164,43 @@ export interface GrowPlan {
   metrics: Record<string, string>
   done: Record<string, boolean>
   offers: GrowOffer[]
+}
+
+// ── Section research context (the KG grounding layer) ──────────────────────
+// A grounding item the author picked from a research search (a corpus passage,
+// a graph entity, or their own material) plus WHY it matters for this passage —
+// the why is first-class: it is quoted in the drafting prompt and, later,
+// written back to the author's knowledge graph as her own claim.
+
+/** The author's reason a picked passage matters here. `text` is canonical —
+ *  a voice note records alongside and transcribes into it (editable). */
+export interface ContextWhy {
+  text: string
+  /** A voice note was kept for this why (audio lives in idb under vn:why-<itemId>). */
+  hasAudio?: boolean
+}
+
+export type ContextItemKind = 'chunk' | 'entity' | 'resource'
+
+export interface ContextItem {
+  id: string
+  kind: ContextItemKind
+  /** chunk_id / node_id in the graph, or the Resource id for own material. */
+  refId: string
+  /** The passage (or entity gloss) that will ground the draft. */
+  excerpt: string
+  /** Provenance shown to the author and cited in the prompt. */
+  source: string
+  why?: ContextWhy
+  /** The search query that surfaced it. */
+  fromQuery?: string
+  addedAt: number
+}
+
+export interface SectionContext {
+  items: ContextItem[]
+  /** True once a research search has returned — unlocks Advanced (graph) search. */
+  searched: boolean
 }
 
 // A margin note anchored to a highlighted span of text (the anchor lives in the
