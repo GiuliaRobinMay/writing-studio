@@ -19,7 +19,7 @@ const INTEGRITY = `NON-NEGOTIABLE INTEGRITY RULES — never break these:
 
 /** Build the system + user prompt for drafting one section. */
 export function buildDraftRequest(payload = {}) {
-  const { voice, bookTitle, chapterTitle, sectionLabel, sectionTitle, brief, sources = [], model } = payload
+  const { voice, bookTitle, chapterTitle, sectionLabel, sectionTitle, brief, sources = [], context = [], model } = payload
   const voiceLine =
     (voice && voice.trim()) ||
     'Brené Brown warmth and intimacy (no regional informality like "y\'all") layered with Aaron Dignan systemic, living-systems thinking.'
@@ -40,7 +40,21 @@ OUTPUT: 2–5 short paragraphs of clean prose. Plain text only, paragraphs separ
       (brief && brief.trim()) || '(No brief provided — keep it brief and leave bracketed placeholders for the author to fill in.)'
     }`,
   )
-  if (sources.length) {
+  // The Context panel's grounding: passages the author picked from their own
+  // sources, each with WHY it matters in their words. This is the §5 "source
+  // passages" slot, upgraded — cited by number so the draft stays traceable.
+  if (context.length) {
+    parts.push(
+      `\nGROUNDING CONTEXT — passages the author selected from their own sources, the only factual material you may draw on. Use only specifics present here; where the section needs a specific these passages don't contain, use a bracketed placeholder. Cite each passage you draw on as [n] at the end of the sentence that uses it. The author's note on a passage tells you what it must do in this section — treat those notes as directions, not suggestions:\n` +
+        context
+          .map((c, i) => {
+            const lines = [`[${i + 1}] (${c.source || 'source'}) ${c.excerpt}`]
+            if (c.why && c.why.trim()) lines.push(`    Author's note — why this matters here: ${c.why.trim()}`)
+            return lines.join('\n')
+          })
+          .join('\n'),
+    )
+  } else if (sources.length) {
     parts.push(
       `\nSOURCE PASSAGES — the only factual material you may draw on. Use their ideas faithfully; do not add facts or quotes beyond them:\n` +
         sources.map((s, i) => `[${i + 1}] ${s}`).join('\n'),

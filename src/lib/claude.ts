@@ -13,6 +13,13 @@ export interface ClaudeHealth {
   message: string
 }
 
+/** One grounding passage from the Context panel, with the author's why. */
+export interface DraftContextItem {
+  excerpt: string
+  source: string
+  why?: string
+}
+
 export interface DraftPayload {
   voice?: string
   bookTitle?: string
@@ -21,6 +28,7 @@ export interface DraftPayload {
   sectionTitle?: string
   brief?: string
   sources?: string[]
+  context?: DraftContextItem[]
 }
 
 export interface DraftResult {

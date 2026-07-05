@@ -105,6 +105,12 @@ function BriefPanel({ sectionId, onInserted }: { sectionId: string; onInserted?:
         sectionTitle: section?.title,
         brief,
         sources: section?.sources ?? [],
+        // The Context panel's grounding — passages + the author's whys.
+        context: (section?.context?.items ?? []).map((it) => ({
+          excerpt: it.excerpt,
+          source: it.source,
+          why: it.why?.text,
+        })),
       })
       setStatus(res.mode)
       if (res.mode === 'demo') {
