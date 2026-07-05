@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { currentBook, useBookStore } from '../store/useBookStore'
 import { SURVEY, SURVEY_IDS, type SurveyQuestion } from '../data/survey'
+import { seedSource } from '../lib/research'
 import type { Resource, ResourceKind } from '../types'
 
 // Each field keeps local state and commits on blur, so typing doesn't re-render
@@ -47,10 +48,36 @@ export function About() {
   const [pasteTitle, setPasteTitle] = useState('')
   const [pasteText, setPasteText] = useState('')
   const [openInfo, setOpenInfo] = useState<string | null>(null)
+  const [seeding, setSeeding] = useState(false)
+  const [seedMsg, setSeedMsg] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const answered = SURVEY_IDS.filter((id) => (about[id] || '').trim()).length
   const pct = Math.round((answered / SURVEY_IDS.length) * 100)
+
+  async function seedFoundation() {
+    if (seeding) return
+    setSeeding(true)
+    setSeedMsg(null)
+    // Compile the answered survey as one Q&A document — the seed material.
+    const qa = SURVEY.flatMap((g) => g.questions)
+      .filter((q) => (about[q.id] || '').trim())
+      .map((q) => `Q: ${q.label}\nA: ${about[q.id].trim()}`)
+      .join('\n\n')
+    try {
+      const r = await seedSource({ title: `Foundation — ${book.title || 'Untitled'}`, text: qa })
+      if (r.mode === 'demo') {
+        setSeedMsg('Demo mode — connect the research service to seed for real.')
+      } else {
+        const w = r.written
+        setSeedMsg(w ? `Seeded ✓ ${w.nodes} ideas · ${w.edges} connections saved.` : 'Seeded ✓')
+      }
+    } catch {
+      setSeedMsg('Seeding didn’t reach the brain — try again in a moment.')
+    } finally {
+      setSeeding(false)
+    }
+  }
 
   async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
@@ -88,6 +115,26 @@ export function About() {
         <div className="bar"><span style={{ width: `${pct}%` }} /></div>
         <div className="cap">{answered} of {SURVEY_IDS.length} answered · {pct}%</div>
       </div>
+
+      {/* Seed the knowledge base from what's here */}
+      <section className="card teach-card">
+        <h2 className="card-title">🧠 Teach the brain</h2>
+        <p className="teach-card-blurb">
+          Your answers here can seed your knowledge base — so drafts are grounded in your thinking from
+          day one. Send the foundation across, or sit down for a short interview about the book.
+        </p>
+        <div className="teach-card-actions">
+          <button
+            className="btn primary"
+            disabled={seeding || answered === 0}
+            onClick={seedFoundation}
+          >
+            {seeding ? 'Seeding…' : `Seed from ${answered} answer${answered === 1 ? '' : 's'}`}
+          </button>
+          <button className="btn" onClick={() => navigate('/teach')}>Start the interview →</button>
+          {seedMsg && <span className="teach-card-msg">{seedMsg}</span>}
+        </div>
+      </section>
 
       {/* Survey */}
       {SURVEY.map((group) => (

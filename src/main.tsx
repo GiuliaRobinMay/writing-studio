@@ -17,6 +17,7 @@ import { Grow } from './screens/Grow'
 import { ShareStudio } from './screens/ShareStudio'
 import { Onboarding } from './screens/Onboarding'
 import { Settings } from './screens/Settings'
+import { TeachBrain } from './screens/TeachBrain'
 import './styles/theme.css'
 import './styles/app.css'
 import './styles/auth.css'
@@ -55,6 +56,7 @@ const router = createHashRouter([
       { path: 'share', element: <ShareStudio /> },
       { path: 'onboarding', element: <Onboarding /> },
       { path: 'settings', element: <Settings /> },
+      { path: 'teach', element: <TeachBrain /> },
     ],
   },
 ])

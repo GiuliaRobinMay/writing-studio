@@ -6,6 +6,7 @@ import { StatusSelect } from '../components/StatusChip'
 import { SectionWriter } from '../components/SectionEditor'
 import { getVoiceNote, setVoiceNote, delVoiceNote, blobToDataUrl } from '../lib/voicenote'
 import { claudeHealth, draftSection } from '../lib/claude'
+import { brainConnected, researchSection } from '../lib/research'
 import { EditorBoundary } from '../components/EditorBoundary'
 import { Hint } from '../components/Hint'
 import { ContextPanel } from '../components/ContextPanel'
@@ -164,6 +165,19 @@ function BriefPanel({ sectionId, onInserted }: { sectionId: string; onInserted?:
             placeholder="What should this section cover? Key points, the feeling, a story to include…"
             value={brief}
             onChange={(e) => updateBrief(sectionId, e.target.value)}
+            onBlur={() => {
+              // Seed the graph just ahead of the writing: a saved brief quietly
+              // fires one research pass (only when the brain is connected).
+              if (brief.trim().length > 40 && brainConnected()) {
+                researchSection({
+                  query: brief.trim().slice(0, 300),
+                  bookTitle: book.title,
+                  chapterTitle: chapter?.title,
+                  sectionTitle: section?.title,
+                  brief,
+                }).catch(() => {})
+              }
+            }}
           />
           <div className="brief-voice">
             {!recording ? (

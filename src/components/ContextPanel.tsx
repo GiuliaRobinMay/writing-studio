@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { currentBook, useBookStore } from '../store/useBookStore'
-import { researchSection, type ResearchResult } from '../lib/research'
+import {
+  advancedSearch,
+  researchSection,
+  type AdvancedMode,
+  type AdvancedResult,
+  type ResearchResult,
+} from '../lib/research'
 import { getVoiceNote, setVoiceNote, delVoiceNote, blobToDataUrl } from '../lib/voicenote'
 import { Hint } from '../components/Hint'
 import type { ContextItem } from '../types'
@@ -157,6 +163,10 @@ export function ContextPanel({ sectionId }: { sectionId: string }) {
   const [sourceOpen, setSourceOpen] = useState(false)
   const [srcTitle, setSrcTitle] = useState('')
   const [srcText, setSrcText] = useState('')
+  const [advOpen, setAdvOpen] = useState(false)
+  const [advBusy, setAdvBusy] = useState(false)
+  const [advMode, setAdvMode] = useState<AdvancedMode>('routes')
+  const [advResult, setAdvResult] = useState<AdvancedResult | null>(null)
 
   // Narrate the synchronous loop while the request is in flight.
   useEffect(() => {
@@ -210,6 +220,38 @@ export function ContextPanel({ sectionId }: { sectionId: string }) {
     })
   }
 
+  async function runAdvanced(mode: AdvancedMode) {
+    if (advBusy) return
+    setAdvMode(mode)
+    setAdvBusy(true)
+    setAdvResult(null)
+    try {
+      setAdvResult(
+        await advancedSearch({
+          mode,
+          seeds: (result?.entities ?? []).map((e) => ({ nodeId: e.nodeId, name: e.name })),
+          sectionTitle: section?.title || section?.label,
+          brief: section?.brief,
+        }),
+      )
+    } catch {
+      setAdvResult({ mode: 'demo', findings: [], note: 'Graph search isn’t reachable right now.' })
+    } finally {
+      setAdvBusy(false)
+    }
+  }
+
+  function pickFinding(f: { title: string; detail: string; chunks: { chunkId: string; sourceId: string; quote: string }[] }) {
+    const quotes = f.chunks.filter((c) => c.quote).map((c) => `“${c.quote}”`)
+    addItem(sectionId, {
+      kind: 'finding',
+      refId: `finding-${f.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60)}`,
+      excerpt: [f.title, f.detail, ...quotes].filter(Boolean).join(' — '),
+      source: `Graph insight · ${advMode}`,
+      fromQuery: advMode,
+    })
+  }
+
   function addSource() {
     if (!srcText.trim()) return
     const title = srcTitle.trim() || 'Pasted source'
@@ -254,12 +296,71 @@ export function ContextPanel({ sectionId }: { sectionId: string }) {
             <button className="btn primary" onClick={runSearch} disabled={busy || !query.trim()}>
               {busy ? 'Researching…' : 'Research'}
             </button>
-            <Hint text={ctx.searched ? 'Graph search — paths, connections, gaps (coming next)' : 'Run a research search first'}>
-              <button className="btn ghost ctx-adv" disabled>
-                Advanced {ctx.searched ? '· soon' : '🔒'}
+            <Hint text={ctx.searched ? 'Graph search — routes, bridges, gaps in your knowledge base' : 'Run a research search first'}>
+              <button
+                className={`btn ghost ctx-adv${advOpen ? ' on' : ''}`}
+                disabled={!ctx.searched}
+                onClick={() => setAdvOpen((o) => !o)}
+              >
+                Advanced {ctx.searched ? (advOpen ? '▾' : '▸') : '🔒'}
               </button>
             </Hint>
           </div>
+
+          {advOpen && ctx.searched && (
+            <div className="ctx-advanced">
+              <div className="ctx-adv-modes">
+                {(
+                  [
+                    ['routes', 'Routes', 'How do two of these ideas connect?'],
+                    ['expand', 'Map', 'What surrounds these ideas?'],
+                    ['influential', 'Bridges', 'Which ideas does your book route through?'],
+                    ['gaps', 'Gaps', 'Which themes haven’t you connected yet?'],
+                  ] as [AdvancedMode, string, string][]
+                ).map(([m, label, hint]) => (
+                  <Hint key={m} text={hint}>
+                    <button
+                      className={`btn ghost${advMode === m && advResult ? ' on' : ''}`}
+                      disabled={advBusy}
+                      onClick={() => runAdvanced(m)}
+                    >
+                      {label}
+                    </button>
+                  </Hint>
+                ))}
+              </div>
+              {advBusy && (
+                <p className="ctx-progress">
+                  <span className="ctx-spinner" /> Searching your knowledge graph…
+                </p>
+              )}
+              {advResult && !advBusy && (
+                <div className="ctx-results">
+                  {advResult.mode === 'demo' && (
+                    <p className="brief-note">Demo graph insights — connect the research service for the real thing.</p>
+                  )}
+                  {advResult.note && <p className="brief-note">{advResult.note}</p>}
+                  {advResult.findings.map((f) => (
+                    <div key={f.title} className="ctx-hit ctx-finding">
+                      <p className="ctx-hit-text"><strong>{f.title}</strong></p>
+                      <p className="ctx-finding-detail">{f.detail}</p>
+                      {f.chunks.filter((c) => c.quote).map((c) => (
+                        <p key={c.chunkId} className="ctx-finding-quote">“{c.quote}”</p>
+                      ))}
+                      <div className="ctx-hit-foot">
+                        <span className="ctx-source">Graph insight · {advMode}</span>
+                        {picked.has(`finding-${f.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60)}`) ? (
+                          <span className="ctx-picked">In context ✓</span>
+                        ) : (
+                          <button className="btn ghost" onClick={() => pickFinding(f)}>+ Add to context</button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {busy && (
             <p className="ctx-progress">

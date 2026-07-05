@@ -54,3 +54,29 @@
 .ctx-addsource { margin-top: 14px; }
 .ctx-src-form { display: flex; flex-direction: column; gap: 8px; }
 .ctx-src-actions { display: flex; gap: 8px; }
+
+/* Advanced (tier-2) graph search */
+.ctx-adv.on { color: var(--accent); border-color: var(--accent); }
+.ctx-advanced { margin-top: 12px; padding: 12px; background: var(--paper); border: 1px dashed var(--line-strong); border-radius: var(--radius-sm); }
+.ctx-adv-modes { display: flex; gap: 6px; flex-wrap: wrap; }
+.ctx-adv-modes .btn.on { color: var(--accent); border-color: var(--accent); }
+.ctx-finding { border-left: 3px solid var(--accent-soft); }
+.ctx-finding-detail { font-family: var(--sans); font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; margin: 0 0 6px; }
+.ctx-finding-quote { font-family: var(--serif); font-size: 12.5px; font-style: italic; color: var(--ink); margin: 0 0 6px; }
+
+/* Teach the brain — foundation card + interview screen */
+.teach-card-blurb { font-size: 13px; color: var(--ink-soft); line-height: 1.5; margin: 4px 0 12px; }
+.teach-card-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.teach-card-msg { font-family: var(--sans); font-size: 12.5px; color: var(--ink-soft); font-style: italic; }
+.teach { max-width: 720px; margin: 0 auto; }
+.teach-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.teach-head p { font-size: 13.5px; color: var(--ink-soft); line-height: 1.5; margin: 6px 0 0; }
+.teach-chat { display: flex; flex-direction: column; gap: 10px; margin: 18px 0; }
+.teach-turn { max-width: 85%; padding: 10px 14px; border-radius: var(--radius); font-size: 14px; line-height: 1.55; }
+.teach-turn.interviewer { background: var(--surface); border: 1px solid var(--line); align-self: flex-start; }
+.teach-turn.author { background: var(--accent-wash); border: 1px solid var(--line); align-self: flex-end; }
+.teach-turn p { margin: 0; }
+.teach-stored { display: block; margin-top: 6px; font-family: var(--sans); font-size: 11.5px; color: var(--accent); }
+.teach-compose { display: flex; gap: 8px; align-items: flex-end; }
+.teach-compose textarea { flex: 1; font-family: var(--sans); font-size: 14px; color: var(--ink); line-height: 1.5; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; resize: vertical; }
+.teach-compose textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }

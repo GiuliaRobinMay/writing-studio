@@ -90,6 +90,20 @@ const server = createServer(async (req, res) => {
       return send(res, 200, await researchSection(process.env.ANTHROPIC_API_KEY, payload, mcpToken))
     }
 
+    if ((url.pathname === '/claude/advanced' || url.pathname === '/claude/seed' ||
+         url.pathname === '/claude/interview') && req.method === 'POST') {
+      const payload = await readBody(req)
+      const mcpToken = req.headers['x-mcp-token'] || process.env.GRAPHRAG_MCP_TOKEN
+      if (!process.env.ANTHROPIC_API_KEY || !mcpToken) return send(res, 200, { mode: 'demo' })
+      if (url.pathname === '/claude/advanced') {
+        const { advancedSearch } = await import('./advanced.js')
+        return send(res, 200, await advancedSearch(process.env.ANTHROPIC_API_KEY, payload, mcpToken))
+      }
+      const { seedSource, interviewTurn } = await import('./seed.js')
+      const fn = url.pathname === '/claude/seed' ? seedSource : interviewTurn
+      return send(res, 200, await fn(process.env.ANTHROPIC_API_KEY, payload, mcpToken))
+    }
+
     if (url.pathname === '/claude/draft' && req.method === 'POST') {
       const payload = await readBody(req)
       if (!process.env.ANTHROPIC_API_KEY) return send(res, 200, { mode: 'demo' })

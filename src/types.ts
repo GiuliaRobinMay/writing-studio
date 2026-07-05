@@ -180,7 +180,7 @@ export interface ContextWhy {
   hasAudio?: boolean
 }
 
-export type ContextItemKind = 'chunk' | 'entity' | 'resource'
+export type ContextItemKind = 'chunk' | 'entity' | 'resource' | 'finding'
 
 export interface ContextItem {
   id: string
