@@ -82,6 +82,14 @@ const server = createServer(async (req, res) => {
       return send(res, 200, { ok: true, mode: 'live', message: 'Claude connected' })
     }
 
+    if (url.pathname === '/claude/research' && req.method === 'POST') {
+      const payload = await readBody(req)
+      const mcpToken = req.headers['x-mcp-token'] || process.env.GRAPHRAG_MCP_TOKEN
+      if (!process.env.ANTHROPIC_API_KEY || !mcpToken) return send(res, 200, { mode: 'demo' })
+      const { researchSection } = await import('./research.js')
+      return send(res, 200, await researchSection(process.env.ANTHROPIC_API_KEY, payload, mcpToken))
+    }
+
     if (url.pathname === '/claude/draft' && req.method === 'POST') {
       const payload = await readBody(req)
       if (!process.env.ANTHROPIC_API_KEY) return send(res, 200, { mode: 'demo' })

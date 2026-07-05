@@ -72,11 +72,21 @@ function demoResult(): ResearchResult {
   return { mode: 'demo', chunks: DEMO_CHUNKS, entities: DEMO_ENTITIES }
 }
 
+/** The author's gateway token, once the Settings login stores it (Phase 2b). */
+function mcpToken(): string | null {
+  try {
+    return localStorage.getItem('graphrag-token')
+  } catch {
+    return null
+  }
+}
+
 export async function researchSection(payload: ResearchPayload): Promise<ResearchResult> {
   try {
+    const token = mcpToken()
     const r = await fetch(`${base()}/claude/research`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(token ? { 'x-mcp-token': token } : {}) },
       body: JSON.stringify(payload),
     })
     if (!r.ok) return demoResult()
