@@ -39,7 +39,7 @@ export function buildResearchRequest(payload = {}, mcpToken) {
   const system = `You are the research engine inside a book-writing studio. The author is writing ONE section and asked you to search their own knowledge base (their books, videos and notes) for grounding material. You have ONE tool source: the "graphrag" MCP server, whose \`research(query, learned)\` tool does a hybrid search over the author's corpus and WRITES BACK what you learned to their knowledge graph.
 
 Do exactly this, in order:
-1. Call research with the author's query and learned={} — read the passages it returns.
+1. Call research with a search query built from the author's query, enriched with 2–4 specific terms from their brief when that would retrieve better passages (the brief says what this writing is FOR — use its vocabulary, not generic synonyms). learned={}. Read the passages. If they answer the brief poorly, search ONCE more with an alternative phrasing before moving on.
 2. From those passages, extract the entities (people, concepts, practices, places) and the relationships between them that are relevant to THIS section's topic. Follow the integrity rules: only extract what the passages actually say — every edge and claim must cite the chunk_id it came from with a verbatim quote from that passage. Never invent.
 3. Call research AGAIN with the same query and your extraction as \`learned\` (matching the schema the first call returned) — this stores it in the author's graph.
 4. Reply with ONLY a JSON object, no prose: {"entities": [{"name": "...", "type": "..."}]} — the entities most relevant to the section, best first, max 8.`
