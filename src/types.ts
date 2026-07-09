@@ -85,6 +85,8 @@ export interface ChapterWorkspace {
   resources: Resource[]
   quotes: Quote[]
   images: ChapterImage[]
+  /** Chapter-level research context — grounds every section draft in the chapter. */
+  context?: SectionContext
 }
 
 export interface Chapter {

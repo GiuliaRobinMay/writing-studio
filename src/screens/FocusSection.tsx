@@ -106,12 +106,18 @@ function BriefPanel({ sectionId, onInserted }: { sectionId: string; onInserted?:
         sectionTitle: section?.title,
         brief,
         sources: section?.sources ?? [],
-        // The Context panel's grounding — passages + the author's whys.
-        context: (section?.context?.items ?? []).map((it) => ({
-          excerpt: it.excerpt,
-          source: it.source,
-          why: it.why?.text,
-        })),
+        // Grounding: the section's own context first, then the chapter-level
+        // context (from the big brief), deduped — both ride the draft prompt.
+        context: (() => {
+          const items = [
+            ...(section?.context?.items ?? []),
+            ...(chapter?.workspace?.context?.items ?? []),
+          ]
+          const seen = new Set<string>()
+          return items
+            .filter((it) => !seen.has(it.refId) && seen.add(it.refId))
+            .map((it) => ({ excerpt: it.excerpt, source: it.source, why: it.why?.text }))
+        })(),
       })
       setStatus(res.mode)
       if (res.mode === 'demo') {

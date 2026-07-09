@@ -80,3 +80,11 @@
 .teach-compose { display: flex; gap: 8px; align-items: flex-end; }
 .teach-compose textarea { flex: 1; font-family: var(--sans); font-size: 14px; color: var(--ink); line-height: 1.5; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; resize: vertical; }
 .teach-compose textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+
+/* Teach polish: the interview should feel like a sitting, not a form */
+.teach-head .btn { white-space: nowrap; }
+.teach-head p { max-width: 58ch; }
+.teach .brief-note { max-width: 62ch; }
+.teach-chat { min-height: 44vh; }
+.teach-turn.interviewer { border-left: 3px solid var(--accent-soft); }
+.teach-emoji { margin-right: 10px; }

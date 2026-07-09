@@ -9,10 +9,13 @@ import {
 } from '../lib/research'
 import { getVoiceNote, setVoiceNote, delVoiceNote, blobToDataUrl } from '../lib/voicenote'
 import { Hint } from '../components/Hint'
-import type { ContextItem } from '../types'
+import type { ContextItem, ContextWhy, SectionContext } from '../types'
 
-// The Context panel: research the author's own sources for THIS section, pick
-// the passages that should ground the draft, and say why each one matters.
+// The Context panel: research the author's own sources, pick the passages that
+// should ground the drafting, and say why each one matters. One engine, two
+// scopes — a SECTION's context (under the focus-mode brief) and a CHAPTER's
+// context (under the big brief; its searches are steered by idea/purpose/
+// outcome, and its picks ground every section draft in the chapter).
 // The search is one honest, synchronous loop — search → read → write back to
 // the graph — so the progress line narrates what is really happening.
 
@@ -20,6 +23,21 @@ const PHASES = ['Searching your sources…', 'Reading the passages…', 'Writing
 
 /** Voice-note key for a why (separate namespace from section briefs). */
 const whyKey = (itemId: string) => `why-${itemId}`
+
+const newId = () => `ctx-${Date.now().toString(36)}-${Math.round(performance.now())}`
+
+/** Everything the panel needs from its host — section or chapter. */
+export interface ContextScope {
+  ctx: SectionContext
+  add: (item: Omit<ContextItem, 'id' | 'addedAt'>) => void
+  updateWhy: (itemId: string, why: ContextWhy) => void
+  remove: (itemId: string) => void
+  setSearched: () => void
+  /** What rides along with every search so results are scope-aware. */
+  payload: { bookTitle?: string; chapterTitle?: string; sectionTitle?: string; brief?: string }
+  /** What the panel is grounding — shown in the help line. */
+  groundsLabel: string
+}
 
 type SR = { start: () => void; stop: () => void } & Record<string, unknown>
 
@@ -42,14 +60,17 @@ function makeRecognizer(onText: (t: string) => void): SR | null {
   return rec
 }
 
-function WhyEditor({ sectionId, item }: { sectionId: string; item: ContextItem }) {
-  const updateWhy = useBookStore((s) => s.updateContextWhy)
+function WhyEditor({ item, onWhy }: { item: ContextItem; onWhy: (why: ContextWhy) => void }) {
   const [recording, setRecording] = useState(false)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [recError, setRecError] = useState<string | null>(null)
   const recRef = useRef<MediaRecorder | null>(null)
   const srRef = useRef<SR | null>(null)
   const why = item.why ?? { text: '' }
+  // Async callbacks (recorder stop, transcript chunks) must see the LATEST why,
+  // not the render they were created in.
+  const whyRef = useRef(why)
+  whyRef.current = why
 
   useEffect(() => {
     let alive = true
@@ -71,21 +92,13 @@ function WhyEditor({ sectionId, item }: { sectionId: string; item: ContextItem }
         const url = await blobToDataUrl(blob)
         setAudioUrl(url)
         setVoiceNote(whyKey(item.id), url)
-        const cur = useBookStore.getState()
-        const sec = currentBook(cur).sections.find((s) => s.id === sectionId)
-        const latest = sec?.context?.items.find((x) => x.id === item.id)?.why ?? { text: '' }
-        updateWhy(sectionId, item.id, { ...latest, hasAudio: true })
+        onWhy({ ...whyRef.current, hasAudio: true })
         stream.getTracks().forEach((t) => t.stop())
       }
       // Transcribe live into the editable why text; the text stays canonical.
       const sr = makeRecognizer((t) => {
-        const cur = useBookStore.getState()
-        const sec = currentBook(cur).sections.find((s) => s.id === sectionId)
-        const latest = sec?.context?.items.find((x) => x.id === item.id)?.why ?? { text: '' }
-        updateWhy(sectionId, item.id, {
-          ...latest,
-          text: latest.text ? `${latest.text} ${t}` : t,
-        })
+        const cur = whyRef.current
+        onWhy({ ...cur, text: cur.text ? `${cur.text} ${t}` : t })
       })
       sr?.start()
       srRef.current = sr
@@ -111,7 +124,7 @@ function WhyEditor({ sectionId, item }: { sectionId: string; item: ContextItem }
   function removeAudio() {
     delVoiceNote(whyKey(item.id))
     setAudioUrl(null)
-    updateWhy(sectionId, item.id, { text: why.text, hasAudio: false })
+    onWhy({ text: why.text, hasAudio: false })
   }
 
   return (
@@ -119,9 +132,9 @@ function WhyEditor({ sectionId, item }: { sectionId: string; item: ContextItem }
       <textarea
         className="ctx-why-text"
         rows={2}
-        placeholder="Why does this passage matter for this section? Say it or type it…"
+        placeholder="Why does this passage matter here? Say it or type it…"
         value={why.text}
-        onChange={(e) => updateWhy(sectionId, item.id, { ...why, text: e.target.value })}
+        onChange={(e) => onWhy({ ...why, text: e.target.value })}
       />
       <div className="ctx-why-voice">
         {!recording ? (
@@ -143,16 +156,9 @@ function WhyEditor({ sectionId, item }: { sectionId: string; item: ContextItem }
   )
 }
 
-export function ContextPanel({ sectionId }: { sectionId: string }) {
-  const book = useBookStore((s) => currentBook(s))
-  const section = book.sections.find((x) => x.id === sectionId)
-  const chapter = book.chapters.find((c) => c.id === section?.chapterId)
-  const ctx = section?.context ?? { items: [], searched: false }
-
-  const addItem = useBookStore((s) => s.addContextItem)
-  const removeItem = useBookStore((s) => s.removeContextItem)
-  const setSearched = useBookStore((s) => s.setContextSearched)
+function ContextPanelBase({ scope }: { scope: ContextScope }) {
   const addResource = useBookStore((s) => s.addResource)
+  const ctx = scope.ctx
 
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -182,16 +188,9 @@ export function ContextPanel({ sectionId }: { sectionId: string }) {
     setNotice(null)
     setResult(null)
     try {
-      const res = await researchSection({
-        query: query.trim(),
-        bookTitle: book.title,
-        chapterTitle: chapter?.title,
-        sectionLabel: section?.label,
-        sectionTitle: section?.title,
-        brief: section?.brief,
-      })
+      const res = await researchSection({ query: query.trim(), ...scope.payload })
       setResult(res)
-      setSearched(sectionId)
+      scope.setSearched()
       if (res.mode === 'demo') {
         setNotice(
           'Showing demo results — connect the research service to search your real books and videos. Everything else works: pick a passage and say why it matters.',
@@ -211,13 +210,7 @@ export function ContextPanel({ sectionId }: { sectionId: string }) {
   function pick(chunkId: string) {
     const c = result?.chunks.find((x) => x.chunkId === chunkId)
     if (!c) return
-    addItem(sectionId, {
-      kind: 'chunk',
-      refId: c.chunkId,
-      excerpt: c.text,
-      source: c.source,
-      fromQuery: query.trim(),
-    })
+    scope.add({ kind: 'chunk', refId: c.chunkId, excerpt: c.text, source: c.source, fromQuery: query.trim() })
   }
 
   async function runAdvanced(mode: AdvancedMode) {
@@ -230,8 +223,8 @@ export function ContextPanel({ sectionId }: { sectionId: string }) {
         await advancedSearch({
           mode,
           seeds: (result?.entities ?? []).map((e) => ({ nodeId: e.nodeId, name: e.name })),
-          sectionTitle: section?.title || section?.label,
-          brief: section?.brief,
+          sectionTitle: scope.payload.sectionTitle || scope.payload.chapterTitle,
+          brief: scope.payload.brief,
         }),
       )
     } catch {
@@ -241,11 +234,13 @@ export function ContextPanel({ sectionId }: { sectionId: string }) {
     }
   }
 
+  const findingRef = (title: string) => `finding-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60)}`
+
   function pickFinding(f: { title: string; detail: string; chunks: { chunkId: string; sourceId: string; quote: string }[] }) {
     const quotes = f.chunks.filter((c) => c.quote).map((c) => `“${c.quote}”`)
-    addItem(sectionId, {
+    scope.add({
       kind: 'finding',
-      refId: `finding-${f.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60)}`,
+      refId: findingRef(f.title),
       excerpt: [f.title, f.detail, ...quotes].filter(Boolean).join(' — '),
       source: `Graph insight · ${advMode}`,
       fromQuery: advMode,
@@ -256,12 +251,7 @@ export function ContextPanel({ sectionId }: { sectionId: string }) {
     if (!srcText.trim()) return
     const title = srcTitle.trim() || 'Pasted source'
     const resId = addResource({ title, kind: 'paste', text: srcText.trim() })
-    addItem(sectionId, {
-      kind: 'resource',
-      refId: resId,
-      excerpt: srcText.trim().slice(0, 280),
-      source: title,
-    })
+    scope.add({ kind: 'resource', refId: resId, excerpt: srcText.trim().slice(0, 280), source: title })
     setSrcTitle('')
     setSrcText('')
     setSourceOpen(false)
@@ -280,7 +270,7 @@ export function ContextPanel({ sectionId }: { sectionId: string }) {
       {open && (
         <div className="brief-body">
           <p className="brief-help">
-            Search your own books, videos and notes for passages that should ground this section.
+            Search your own books, videos and notes for passages that should ground {scope.groundsLabel}.
             Pick the ones that matter and say why — the draft cites them, and every search grows
             your knowledge graph.
           </p>
@@ -349,7 +339,7 @@ export function ContextPanel({ sectionId }: { sectionId: string }) {
                       ))}
                       <div className="ctx-hit-foot">
                         <span className="ctx-source">Graph insight · {advMode}</span>
-                        {picked.has(`finding-${f.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60)}`) ? (
+                        {picked.has(findingRef(f.title)) ? (
                           <span className="ctx-picked">In context ✓</span>
                         ) : (
                           <button className="btn ghost" onClick={() => pickFinding(f)}>+ Add to context</button>
@@ -396,15 +386,15 @@ export function ContextPanel({ sectionId }: { sectionId: string }) {
 
           {ctx.items.length > 0 && (
             <div className="ctx-items">
-              <div className="ctx-items-head">Grounding this section</div>
+              <div className="ctx-items-head">Grounding {scope.groundsLabel}</div>
               {ctx.items.map((it) => (
                 <div key={it.id} className="ctx-item">
                   <p className="ctx-item-excerpt">“{it.excerpt}”</p>
                   <div className="ctx-hit-foot">
                     <span className="ctx-source">{it.source}</span>
-                    <button className="draft-x" title="Remove from context" onClick={() => removeItem(sectionId, it.id)}>✕</button>
+                    <button className="draft-x" title="Remove from context" onClick={() => scope.remove(it.id)}>✕</button>
                   </div>
-                  <WhyEditor sectionId={sectionId} item={it} />
+                  <WhyEditor item={it} onWhy={(w) => scope.updateWhy(it.id, w)} />
                 </div>
               ))}
             </div>
@@ -438,5 +428,76 @@ export function ContextPanel({ sectionId }: { sectionId: string }) {
         </div>
       )}
     </div>
+  )
+}
+
+/** Section scope — lives under the focus-mode brief. */
+export function ContextPanel({ sectionId }: { sectionId: string }) {
+  const book = useBookStore((s) => currentBook(s))
+  const section = book.sections.find((x) => x.id === sectionId)
+  const chapter = book.chapters.find((c) => c.id === section?.chapterId)
+
+  const addItem = useBookStore((s) => s.addContextItem)
+  const updateWhy = useBookStore((s) => s.updateContextWhy)
+  const removeItem = useBookStore((s) => s.removeContextItem)
+  const setSearched = useBookStore((s) => s.setContextSearched)
+
+  return (
+    <ContextPanelBase
+      scope={{
+        ctx: section?.context ?? { items: [], searched: false },
+        add: (item) => addItem(sectionId, item),
+        updateWhy: (id, why) => updateWhy(sectionId, id, why),
+        remove: (id) => removeItem(sectionId, id),
+        setSearched: () => setSearched(sectionId),
+        payload: {
+          bookTitle: book.title,
+          chapterTitle: chapter?.title,
+          sectionTitle: section?.title || section?.label,
+          brief: section?.brief,
+        },
+        groundsLabel: 'this section',
+      }}
+    />
+  )
+}
+
+/** Chapter scope — lives under the big brief; searches are steered by the
+ *  brief fields, and picks ground every section draft in the chapter. */
+export function ChapterContextPanel({ chapterId }: { chapterId: string }) {
+  const book = useBookStore((s) => currentBook(s))
+  const chapter = book.chapters.find((c) => c.id === chapterId)
+  const update = useBookStore((s) => s.updateChapterWorkspace)
+  const ws = chapter?.workspace
+  const ctx = ws?.context ?? { items: [], searched: false }
+
+  const patchCtx = (next: SectionContext) => update(chapterId, { context: next })
+
+  // The big brief IS the search context: idea, purpose, outcome, notes.
+  const brief = [
+    ws?.idea && `Idea: ${ws.idea}`,
+    ws?.purpose && `Purpose: ${ws.purpose}`,
+    ws?.outcome && `Outcome for the reader: ${ws.outcome}`,
+    ws?.notes && `Notes: ${ws.notes}`,
+  ]
+    .filter(Boolean)
+    .join('\n')
+
+  return (
+    <ContextPanelBase
+      scope={{
+        ctx,
+        add: (item) => {
+          if (ctx.items.some((x) => x.refId === item.refId)) return
+          patchCtx({ ...ctx, items: [...ctx.items, { ...item, id: newId(), addedAt: Date.now() }] })
+        },
+        updateWhy: (id, why) =>
+          patchCtx({ ...ctx, items: ctx.items.map((x) => (x.id === id ? { ...x, why } : x)) }),
+        remove: (id) => patchCtx({ ...ctx, items: ctx.items.filter((x) => x.id !== id) }),
+        setSearched: () => patchCtx({ ...ctx, searched: true }),
+        payload: { bookTitle: book.title, chapterTitle: chapter?.title, brief },
+        groundsLabel: 'this whole chapter',
+      }}
+    />
   )
 }

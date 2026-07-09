@@ -118,7 +118,7 @@ export function About() {
 
       {/* Seed the knowledge base from what's here */}
       <section className="card teach-card">
-        <h2 className="card-title">🧠 Teach the brain</h2>
+        <h2 className="card-title"><span className="teach-emoji">🧠</span>Teach the brain</h2>
         <p className="teach-card-blurb">
           Your answers here can seed your knowledge base — so drafts are grounded in your thinking from
           day one. Send the foundation across, or sit down for a short interview about the book.
