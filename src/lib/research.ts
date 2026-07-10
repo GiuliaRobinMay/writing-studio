@@ -12,8 +12,12 @@ function base(): string {
 export interface ResearchChunk {
   chunkId: string
   sourceId: string
-  /** Human-readable provenance: book / video title + locator. */
+  /** Human-readable provenance, resolved by the gateway: book title + chapter
+   *  + page(s), podcast show + episode + timecode, or video / added-source
+   *  title. Shown verbatim on the card and cited in the draft prompt. */
   source: string
+  /** book | podcast | loom | studio — what kind of source the chunk came from. */
+  sourceType?: string
   text: string
   score?: number
 }
@@ -41,23 +45,28 @@ export interface ResearchResult {
   written?: { nodes: number; edges: number; claims: number }
 }
 
+// Demo fixtures mirror the real citation formats the gateway resolves:
+// video title, podcast show + episode + timecode, book + chapter + pages.
 const DEMO_CHUNKS: ResearchChunk[] = [
   {
     chunkId: 'demo-ch-1',
     sourceId: 'demo-src-loom',
-    source: 'Demo · community workshop recording',
+    source: 'Community Workshop - Welcoming New Members (video)',
+    sourceType: 'loom',
     text: 'People don’t stay for the content — they stay because someone noticed they were gone. The moment a member is welcomed back by name, belonging stops being a promise and becomes a fact.',
   },
   {
     chunkId: 'demo-ch-2',
-    sourceId: 'demo-src-book',
-    source: 'Demo · founder interview notes',
+    sourceId: 'demo-src-podcast',
+    source: 'The Community Table — “Why Rhythm Beats Format”, 14:32',
+    sourceType: 'podcast',
     text: 'Every thriving community we studied had a rhythm: a weekly moment members could set their watch by. The rhythm mattered more than the format — the format changed, the rhythm never did.',
   },
   {
     chunkId: 'demo-ch-3',
     sourceId: 'demo-src-book',
-    source: 'Demo · retention research summary',
+    source: 'People Powered — “Retention Follows Contribution”, pp. 112–114',
+    sourceType: 'book',
     text: 'Retention followed contribution, not consumption. Members who had been asked to help someone else in their first month renewed at nearly twice the rate of those who had only attended.',
   },
 ]

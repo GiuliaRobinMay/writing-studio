@@ -113,12 +113,20 @@ export function parseResearchResponse(content = []) {
     }
   }
 
+  // The gateway resolves full provenance per hit (which book, which chapter,
+  // which page — which show, which episode, what timecode) into a one-line
+  // `citation`. That line IS the source string the author sees and the draft
+  // prompt cites; the typed fallback only covers hits the gateway couldn't
+  // resolve (it degrades rather than fails).
+  const kindLabel = (t) =>
+    ({ loom: 'Video', video: 'Video', podcast: 'Podcast', studio: 'Added source', book: 'Book' })[t] || 'Source'
   return {
     mode: 'live',
     chunks: passages.map((p) => ({
       chunkId: p.chunk_id,
       sourceId: p.source_id,
-      source: `${p.source_type === 'loom' || p.source_type === 'video' ? 'Video' : 'Book'} · ${p.source_id}`,
+      source: p.citation || `${kindLabel(p.source_type)} · ${p.source_id}`,
+      sourceType: p.source_type,
       text: p.text,
       score: p.score,
     })),

@@ -372,7 +372,7 @@ function ContextPanelBase({ scope }: { scope: ContextScope }) {
                 <div key={c.chunkId} className="ctx-hit">
                   <p className="ctx-hit-text">{c.text}</p>
                   <div className="ctx-hit-foot">
-                    <span className="ctx-source">{c.source}</span>
+                    <span className="ctx-source" title={c.source}>{c.source}</span>
                     {picked.has(c.chunkId) ? (
                       <span className="ctx-picked">In context ✓</span>
                     ) : (
@@ -391,7 +391,7 @@ function ContextPanelBase({ scope }: { scope: ContextScope }) {
                 <div key={it.id} className="ctx-item">
                   <p className="ctx-item-excerpt">“{it.excerpt}”</p>
                   <div className="ctx-hit-foot">
-                    <span className="ctx-source">{it.source}</span>
+                    <span className="ctx-source" title={it.source}>{it.source}</span>
                     <button className="draft-x" title="Remove from context" onClick={() => scope.remove(it.id)}>✕</button>
                   </div>
                   <WhyEditor item={it} onWhy={(w) => scope.updateWhy(it.id, w)} />
