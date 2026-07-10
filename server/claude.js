@@ -49,6 +49,11 @@ OUTPUT: 2–5 short paragraphs of clean prose. Plain text only, paragraphs separ
         context
           .map((c, i) => {
             const lines = [`[${i + 1}] (${c.source || 'source'}) ${c.excerpt}`]
+            // Sentences the author highlighted while reading around the
+            // passage — the lines that matter most, quoted verbatim.
+            for (const h of c.highlights || []) {
+              if (h && h.trim()) lines.push(`    Author's highlight — build on this line: “${h.trim()}”`)
+            }
             if (c.why && c.why.trim()) lines.push(`    Author's note — why this matters here: ${c.why.trim()}`)
             return lines.join('\n')
           })

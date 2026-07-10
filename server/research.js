@@ -17,11 +17,11 @@ const RESEARCH_MODEL = 'claude-sonnet-5'
 const GATEWAY_URL = 'https://graphrag-gateway-f3kwtofzka-ew.a.run.app'
 const MAX_CONTINUATIONS = 5
 
-function gatewayUrl() {
+export function gatewayUrl() {
   return (process.env.GRAPHRAG_GATEWAY_URL || GATEWAY_URL).replace(/\/$/, '')
 }
 
-function collection() {
+export function collection() {
   return process.env.GRAPHRAG_COLLECTION || 'giulia'
 }
 
@@ -129,6 +129,8 @@ export function parseResearchResponse(content = []) {
       sourceType: p.source_type,
       text: p.text,
       score: p.score,
+      // podcast snippet playback: enclosure + the chunk's own timecodes
+      ...(p.audio_url ? { audioUrl: p.audio_url, startSec: p.start_sec, endSec: p.end_sec } : {}),
     })),
     entities: entities.slice(0, 8).map((e) => ({
       nodeId: `${e.type || 'concept'}:${(e.name || '').toLowerCase().replace(/\s+/g, '-')}`,

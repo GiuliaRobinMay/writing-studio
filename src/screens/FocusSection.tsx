@@ -116,7 +116,7 @@ function BriefPanel({ sectionId, onInserted }: { sectionId: string; onInserted?:
           const seen = new Set<string>()
           return items
             .filter((it) => !seen.has(it.refId) && seen.add(it.refId))
-            .map((it) => ({ excerpt: it.excerpt, source: it.source, why: it.why?.text }))
+            .map((it) => ({ excerpt: it.excerpt, source: it.source, why: it.why?.text, highlights: it.highlights }))
         })(),
       })
       setStatus(res.mode)
@@ -295,7 +295,7 @@ export function FocusSection() {
           <SectionWriter key={section.id} section={section} onWords={setWords} titleClass="focus-title" contentVersion={writerVersion} />
         </EditorBoundary>
         <BriefPanel sectionId={section.id} onInserted={() => setWriterVersion((v) => v + 1)} />
-        <ContextPanel sectionId={section.id} />
+        <ContextPanel owner={{ kind: 'section', id: section.id }} />
       </div>
 
       <div className="focus-nav">

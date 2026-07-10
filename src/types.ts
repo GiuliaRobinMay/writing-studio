@@ -193,7 +193,17 @@ export interface ContextItem {
   excerpt: string
   /** Provenance shown to the author and cited in the prompt. */
   source: string
+  /** book | podcast | loom | studio — unlocks per-kind affordances
+   *  (read-more + highlighting for books, the snippet player for podcasts). */
+  sourceType?: string
   why?: ContextWhy
+  /** Sentences the author highlighted in the expanded passage — quoted
+   *  verbatim in the draft prompt as the lines that matter most. */
+  highlights?: string[]
+  /** Podcast only: the episode's audio enclosure + the chunk's timecodes. */
+  audioUrl?: string
+  startSec?: number
+  endSec?: number
   /** The search query that surfaced it. */
   fromQuery?: string
   addedAt: number

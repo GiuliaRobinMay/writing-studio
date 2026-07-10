@@ -74,6 +74,14 @@ const server = createServer(async (req, res) => {
       return send(res, 200, { mode: 'live', results: await brain.textSearch(config, query, topK) })
     }
 
+    if (url.pathname === '/brain/expand' && req.method === 'POST') {
+      const payload = await readBody(req)
+      const mcpToken = req.headers['x-mcp-token'] || process.env.GRAPHRAG_MCP_TOKEN
+      if (!mcpToken) return send(res, 200, { mode: 'demo' })
+      const { expandChunk } = await import('./expand.js')
+      return send(res, 200, await expandChunk(payload, mcpToken))
+    }
+
     // ── Claude connection (section drafting) ──
     if (url.pathname === '/claude/health') {
       if (!process.env.ANTHROPIC_API_KEY) {

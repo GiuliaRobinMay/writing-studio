@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom'
 import { ChapterSubLayout } from '../components/ChapterSub'
 import { WorkspaceBrief } from '../components/ChapterWorkspace'
-import { ChapterContextPanel } from '../components/ContextPanel'
+import { ContextPanel } from '../components/ContextPanel'
 
 export function ChapterBrief() {
   const { chapterId } = useParams()
@@ -11,7 +11,7 @@ export function ChapterBrief() {
       <WorkspaceBrief chapterId={chapterId} />
       {/* Chapter-level research: searches steered by the brief above; picks
           ground every section draft in this chapter. */}
-      <ChapterContextPanel chapterId={chapterId} />
+      <ContextPanel owner={{ kind: 'chapter', id: chapterId }} />
     </ChapterSubLayout>
   )
 }

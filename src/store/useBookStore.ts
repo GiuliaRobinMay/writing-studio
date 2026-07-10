@@ -8,7 +8,7 @@ import type {
   ChapterTemplate,
   ChapterWorkspace,
   ContextItem,
-  ContextWhy,
+  SectionContext,
   GrowPlan,
   PublishMeta,
   Reference,
@@ -21,6 +21,9 @@ import type {
   WorkspaceState,
 } from '../types'
 import { unwrapNote } from '../lib/notemark'
+
+/** Who a research-context item belongs to — a section or a whole chapter. */
+export type ContextOwner = { kind: 'section' | 'chapter'; id: string }
 import {
   BTB_ABOUT,
   BTB_TEMPLATE_ID,
@@ -103,11 +106,13 @@ interface Actions {
   updateSectionBody: (sectionId: string, body: string) => void
   updateSectionTitle: (sectionId: string, title: string) => void
   updateSectionBrief: (sectionId: string, brief: string) => void
-  // Research context (the KG grounding layer)
-  addContextItem: (sectionId: string, item: Omit<ContextItem, 'id' | 'addedAt'>) => string
-  updateContextWhy: (sectionId: string, itemId: string, why: ContextWhy) => void
-  removeContextItem: (sectionId: string, itemId: string) => void
-  setContextSearched: (sectionId: string) => void
+  // Research context (the KG grounding layer). ONE set of actions for both
+  // owners — a section's context and a chapter's (workspace) context are the
+  // same structure, so features (highlights, snippets) land once, not twice.
+  addContextItem: (owner: ContextOwner, item: Omit<ContextItem, 'id' | 'addedAt'>) => string
+  updateContextItem: (owner: ContextOwner, itemId: string, patch: Partial<ContextItem>) => void
+  removeContextItem: (owner: ContextOwner, itemId: string) => void
+  setContextSearched: (owner: ContextOwner) => void
   setSectionStatus: (sectionId: string, status: Status) => void
   addSection: (chapterId: string) => void
   insertSection: (chapterId: string, index: number, kind?: 'section' | 'separator' | 'image') => void
@@ -166,6 +171,38 @@ export const useBookStore = create<Store>()(
         ...b,
         sections: b.sections.map(fn),
       })
+
+      // One write path for research context, whoever owns it — the section's
+      // context or the chapter workspace's. Features never fork on the owner.
+      const patchContext = (owner: ContextOwner, fn: (ctx: SectionContext) => SectionContext) =>
+        patchBook((b) =>
+          owner.kind === 'section'
+            ? mapSections(b, (s) =>
+                s.id === owner.id
+                  ? {
+                      ...s,
+                      context: fn(s.context ?? { items: [], searched: false }),
+                      updatedAt: Date.now(),
+                    }
+                  : s,
+              )
+            : {
+                ...b,
+                chapters: b.chapters.map((c) =>
+                  c.id === owner.id
+                    ? {
+                        ...c,
+                        workspace: {
+                          ...emptyWorkspace(),
+                          ...c.workspace,
+                          context: fn(c.workspace?.context ?? { items: [], searched: false }),
+                        },
+                        updatedAt: Date.now(),
+                      }
+                    : c,
+                ),
+              },
+        )
 
       return {
         ...buildWorkspace(SEED_TIME),
@@ -421,59 +458,29 @@ export const useBookStore = create<Store>()(
         updateSectionBrief: (sectionId, brief) =>
           patchBook((b) => mapSections(b, (s) => (s.id === sectionId ? { ...s, brief, updatedAt: Date.now() } : s))),
 
-        // ── Research context ──
-        addContextItem: (sectionId, item) => {
+        // ── Research context (owner-generic: section or chapter) ──
+        addContextItem: (owner, item) => {
           const id = `ctx-${Date.now().toString(36)}-${Math.round(performance.now())}`
-          patchBook((b) =>
-            mapSections(b, (s) => {
-              if (s.id !== sectionId) return s
-              const ctx = s.context ?? { items: [], searched: false }
-              // The same passage picked twice stays one item.
-              if (ctx.items.some((x) => x.refId === item.refId)) return s
-              return {
-                ...s,
-                context: { ...ctx, items: [...ctx.items, { ...item, id, addedAt: Date.now() }] },
-                updatedAt: Date.now(),
-              }
-            }),
+          patchContext(owner, (ctx) =>
+            // The same passage picked twice stays one item.
+            ctx.items.some((x) => x.refId === item.refId)
+              ? ctx
+              : { ...ctx, items: [...ctx.items, { ...item, id, addedAt: Date.now() }] },
           )
           return id
         },
-        updateContextWhy: (sectionId, itemId, why) =>
-          patchBook((b) =>
-            mapSections(b, (s) =>
-              s.id === sectionId && s.context
-                ? {
-                    ...s,
-                    context: {
-                      ...s.context,
-                      items: s.context.items.map((x) => (x.id === itemId ? { ...x, why } : x)),
-                    },
-                    updatedAt: Date.now(),
-                  }
-                : s,
-            ),
-          ),
-        removeContextItem: (sectionId, itemId) =>
-          patchBook((b) =>
-            mapSections(b, (s) =>
-              s.id === sectionId && s.context
-                ? {
-                    ...s,
-                    context: { ...s.context, items: s.context.items.filter((x) => x.id !== itemId) },
-                    updatedAt: Date.now(),
-                  }
-                : s,
-            ),
-          ),
-        setContextSearched: (sectionId) =>
-          patchBook((b) =>
-            mapSections(b, (s) =>
-              s.id === sectionId
-                ? { ...s, context: { items: [], ...s.context, searched: true } }
-                : s,
-            ),
-          ),
+        updateContextItem: (owner, itemId, patch) =>
+          patchContext(owner, (ctx) => ({
+            ...ctx,
+            items: ctx.items.map((x) => (x.id === itemId ? { ...x, ...patch } : x)),
+          })),
+        removeContextItem: (owner, itemId) =>
+          patchContext(owner, (ctx) => ({
+            ...ctx,
+            items: ctx.items.filter((x) => x.id !== itemId),
+          })),
+        setContextSearched: (owner) =>
+          patchContext(owner, (ctx) => ({ ...ctx, searched: true })),
         setSectionStatus: (sectionId, status) =>
           patchBook((b) => mapSections(b, (s) => (s.id === sectionId ? { ...s, status, updatedAt: Date.now() } : s))),
         addSection: (chapterId) =>

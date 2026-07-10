@@ -20,6 +20,50 @@ export interface ResearchChunk {
   sourceType?: string
   text: string
   score?: number
+  /** Podcast only: the episode's audio enclosure + this chunk's timecodes,
+   *  so the card can play the exact snippet the text transcribes. */
+  audioUrl?: string
+  startSec?: number
+  endSec?: number
+}
+
+// ── Read more: the passage around a book chunk, sentence by sentence ────────
+
+export interface ExpandSegment {
+  seq: number
+  text: string
+  /** True for the sentences that ARE the original chunk (styled distinctly). */
+  in_chunk: boolean
+}
+
+export interface ExpandResult {
+  mode: 'demo' | 'live'
+  ok?: boolean
+  error?: string
+  segments?: ExpandSegment[]
+  pageStart?: number | null
+  pageEnd?: number | null
+  hasMoreBefore?: boolean
+  hasMoreAfter?: boolean
+}
+
+/** Fetch the reading-order window around a book chunk (no model involved —
+ *  it's a page turn, not research). Falls back to demo mode when offline. */
+export async function expandChunk(payload: { chunkId: string; window?: number }): Promise<ExpandResult> {
+  try {
+    const token = mcpToken()
+    const r = await fetch(`${base()}/brain/expand`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { 'x-mcp-token': token } : {}) },
+      body: JSON.stringify(payload),
+    })
+    if (!r.ok) throw new Error(String(r.status))
+    const j = (await r.json()) as ExpandResult
+    if (j.mode === 'live') return j
+  } catch {
+    /* fall through to demo */
+  }
+  return { mode: 'demo' }
 }
 
 export interface ResearchEntity {

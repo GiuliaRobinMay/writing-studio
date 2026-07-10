@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { currentBook, useBookStore } from '../store/useBookStore'
+import { currentBook, useBookStore, type ContextOwner } from '../store/useBookStore'
 import {
   advancedSearch,
+  expandChunk,
   researchSection,
   type AdvancedMode,
   type AdvancedResult,
+  type ExpandSegment,
   type ResearchResult,
 } from '../lib/research'
 import { getVoiceNote, setVoiceNote, delVoiceNote, blobToDataUrl } from '../lib/voicenote'
@@ -24,13 +26,11 @@ const PHASES = ['Searching your sources…', 'Reading the passages…', 'Writing
 /** Voice-note key for a why (separate namespace from section briefs). */
 const whyKey = (itemId: string) => `why-${itemId}`
 
-const newId = () => `ctx-${Date.now().toString(36)}-${Math.round(performance.now())}`
-
 /** Everything the panel needs from its host — section or chapter. */
-export interface ContextScope {
+interface ContextScope {
   ctx: SectionContext
   add: (item: Omit<ContextItem, 'id' | 'addedAt'>) => void
-  updateWhy: (itemId: string, why: ContextWhy) => void
+  update: (itemId: string, patch: Partial<ContextItem>) => void
   remove: (itemId: string) => void
   setSearched: () => void
   /** What rides along with every search so results are scope-aware. */
@@ -156,6 +156,129 @@ function WhyEditor({ item, onWhy }: { item: ContextItem; onWhy: (why: ContextWhy
   )
 }
 
+/** Listen to the exact seconds of the episode this chunk transcribes. The
+ *  media-fragment (#t=start,end) seeks on hosts that honor it; the timeupdate
+ *  guard stops at the chunk's end either way. preload=none — nothing loads
+ *  until the author presses play. */
+function SnippetPlayer({ audioUrl, startSec, endSec }: { audioUrl: string; startSec?: number; endSec?: number }) {
+  const ref = useRef<HTMLAudioElement | null>(null)
+  const start = Math.max(0, Math.floor(startSec ?? 0))
+  const src = `${audioUrl}#t=${start}${endSec ? `,${Math.ceil(endSec)}` : ''}`
+  return (
+    <audio
+      ref={ref}
+      className="ctx-snippet"
+      controls
+      preload="none"
+      src={src}
+      onPlay={() => {
+        const a = ref.current
+        // hosts that ignore the fragment start at 0 — seek ourselves
+        if (a && start && a.currentTime < start - 2) a.currentTime = start
+      }}
+      onTimeUpdate={() => {
+        const a = ref.current
+        if (a && endSec && a.currentTime >= endSec) a.pause()
+      }}
+    />
+  )
+}
+
+/** Read more of a book passage, in place. Expansion fetches the chunk's
+ *  surrounding SEGMENTS (sentence-sized, contiguous, chapter-clipped) from the
+ *  gateway; each click widens the window. When `onHighlights` is given the
+ *  sentences toggle on click — the author marks the exact lines that matter,
+ *  and those are quoted verbatim in the draft prompt. */
+function ChunkReader({
+  chunkId,
+  highlights,
+  onHighlights,
+}: {
+  chunkId: string
+  highlights?: string[]
+  onHighlights?: (next: string[]) => void
+}) {
+  const [segments, setSegments] = useState<ExpandSegment[] | null>(null)
+  const [window_, setWindow] = useState(12)
+  const [more, setMore] = useState({ before: false, after: false })
+  const [pages, setPages] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
+
+  const hl = new Set(highlights ?? [])
+
+  async function load(w: number) {
+    if (busy) return
+    setBusy(true)
+    setNote(null)
+    try {
+      const r = await expandChunk({ chunkId, window: w })
+      if (r.mode === 'demo' || !r.ok || !r.segments) {
+        setNote(r.error || 'Reading around this passage needs the live connection.')
+      } else {
+        setSegments(r.segments)
+        setWindow(w)
+        setMore({ before: !!r.hasMoreBefore, after: !!r.hasMoreAfter })
+        setPages(
+          r.pageStart != null
+            ? r.pageEnd != null && r.pageEnd !== r.pageStart
+              ? `pp. ${r.pageStart}–${r.pageEnd}`
+              : `p. ${r.pageStart}`
+            : null,
+        )
+      }
+    } catch {
+      setNote('Reading around this passage isn’t available right now.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function toggle(text: string) {
+    if (!onHighlights) return
+    const next = new Set(hl)
+    if (next.has(text)) next.delete(text)
+    else next.add(text)
+    // keep reading order: filter the segment list, not insertion order
+    const ordered = (segments ?? []).map((s) => s.text).filter((t) => next.has(t))
+    // highlights made before this expansion (or beyond it) stay
+    const outside = [...next].filter((t) => !(segments ?? []).some((s) => s.text === t))
+    onHighlights([...outside, ...ordered])
+  }
+
+  return (
+    <div className="ctx-reader">
+      {segments && (
+        <p className={`ctx-reader-text${onHighlights ? ' picking' : ''}`}>
+          {segments.map((s) => (
+            <span
+              key={s.seq}
+              className={`ctx-seg${s.in_chunk ? ' in' : ''}${hl.has(s.text) ? ' hl' : ''}`}
+              onClick={() => toggle(s.text)}
+            >
+              {s.text}{' '}
+            </span>
+          ))}
+        </p>
+      )}
+      {segments && onHighlights && (
+        <p className="ctx-reader-hint">Click a sentence to highlight what matters — highlighted lines are quoted in the draft.</p>
+      )}
+      <div className="ctx-reader-foot">
+        <button
+          className="btn ghost"
+          disabled={busy || (!!segments && !more.before && !more.after)}
+          onClick={() => load(segments ? window_ + 16 : 12)}
+        >
+          {busy ? 'Loading…' : segments ? (more.before || more.after ? 'Read more' : 'Whole chapter shown') : onHighlights ? 'Read & highlight' : 'Read more'}
+        </button>
+        {pages && <span className="ctx-source">{pages}</span>}
+      </div>
+      {note && <p className="brief-note">{note}</p>}
+    </div>
+  )
+}
+
 function ContextPanelBase({ scope }: { scope: ContextScope }) {
   const addResource = useBookStore((s) => s.addResource)
   const ctx = scope.ctx
@@ -210,8 +333,21 @@ function ContextPanelBase({ scope }: { scope: ContextScope }) {
   function pick(chunkId: string) {
     const c = result?.chunks.find((x) => x.chunkId === chunkId)
     if (!c) return
-    scope.add({ kind: 'chunk', refId: c.chunkId, excerpt: c.text, source: c.source, fromQuery: query.trim() })
+    scope.add({
+      kind: 'chunk',
+      refId: c.chunkId,
+      excerpt: c.text,
+      source: c.source,
+      sourceType: c.sourceType,
+      ...(c.audioUrl ? { audioUrl: c.audioUrl, startSec: c.startSec, endSec: c.endSec } : {}),
+      fromQuery: query.trim(),
+    })
   }
+
+  /** Which per-kind affordance a chunk gets. Demo fixtures have no live data
+   *  behind them, so book expansion is hidden there. */
+  const canExpand = (c: { sourceType?: string; chunkId: string }) =>
+    c.sourceType === 'book' && !c.chunkId.startsWith('demo-')
 
   async function runAdvanced(mode: AdvancedMode) {
     if (advBusy) return
@@ -371,6 +507,8 @@ function ContextPanelBase({ scope }: { scope: ContextScope }) {
               {result.chunks.map((c) => (
                 <div key={c.chunkId} className="ctx-hit">
                   <p className="ctx-hit-text">{c.text}</p>
+                  {c.audioUrl && <SnippetPlayer audioUrl={c.audioUrl} startSec={c.startSec} endSec={c.endSec} />}
+                  {canExpand(c) && <ChunkReader chunkId={c.chunkId} />}
                   <div className="ctx-hit-foot">
                     <span className="ctx-source" title={c.source}>{c.source}</span>
                     {picked.has(c.chunkId) ? (
@@ -390,11 +528,26 @@ function ContextPanelBase({ scope }: { scope: ContextScope }) {
               {ctx.items.map((it) => (
                 <div key={it.id} className="ctx-item">
                   <p className="ctx-item-excerpt">“{it.excerpt}”</p>
+                  {it.audioUrl && <SnippetPlayer audioUrl={it.audioUrl} startSec={it.startSec} endSec={it.endSec} />}
+                  {it.kind === 'chunk' && canExpand({ sourceType: it.sourceType, chunkId: it.refId }) && (
+                    <ChunkReader
+                      chunkId={it.refId}
+                      highlights={it.highlights}
+                      onHighlights={(next) => scope.update(it.id, { highlights: next })}
+                    />
+                  )}
+                  {!!it.highlights?.length && (
+                    <div className="ctx-highlights">
+                      {it.highlights.map((h) => (
+                        <p key={h} className="ctx-highlight">✦ {h}</p>
+                      ))}
+                    </div>
+                  )}
                   <div className="ctx-hit-foot">
                     <span className="ctx-source" title={it.source}>{it.source}</span>
                     <button className="draft-x" title="Remove from context" onClick={() => scope.remove(it.id)}>✕</button>
                   </div>
-                  <WhyEditor item={it} onWhy={(w) => scope.updateWhy(it.id, w)} />
+                  <WhyEditor item={it} onWhy={(w) => scope.update(it.id, { why: w })} />
                 </div>
               ))}
             </div>
@@ -431,72 +584,61 @@ function ContextPanelBase({ scope }: { scope: ContextScope }) {
   )
 }
 
-/** Section scope — lives under the focus-mode brief. */
-export function ContextPanel({ sectionId }: { sectionId: string }) {
+/** ONE panel, two owners. The engine and every affordance (research, advanced
+ *  graph search, read-more, highlights, snippets, whys) are identical at both
+ *  levels — the owner decides only where items persist and which brief steers
+ *  the search: the section's own brief, or the chapter's big brief. */
+export function ContextPanel({ owner }: { owner: ContextOwner }) {
   const book = useBookStore((s) => currentBook(s))
-  const section = book.sections.find((x) => x.id === sectionId)
-  const chapter = book.chapters.find((c) => c.id === section?.chapterId)
-
   const addItem = useBookStore((s) => s.addContextItem)
-  const updateWhy = useBookStore((s) => s.updateContextWhy)
+  const updateItem = useBookStore((s) => s.updateContextItem)
   const removeItem = useBookStore((s) => s.removeContextItem)
   const setSearched = useBookStore((s) => s.setContextSearched)
 
-  return (
-    <ContextPanelBase
-      scope={{
-        ctx: section?.context ?? { items: [], searched: false },
-        add: (item) => addItem(sectionId, item),
-        updateWhy: (id, why) => updateWhy(sectionId, id, why),
-        remove: (id) => removeItem(sectionId, id),
-        setSearched: () => setSearched(sectionId),
-        payload: {
-          bookTitle: book.title,
-          chapterTitle: chapter?.title,
-          sectionTitle: section?.title || section?.label,
-          brief: section?.brief,
-        },
-        groundsLabel: 'this section',
-      }}
-    />
-  )
-}
+  const section = owner.kind === 'section' ? book.sections.find((x) => x.id === owner.id) : undefined
+  const chapter =
+    owner.kind === 'section'
+      ? book.chapters.find((c) => c.id === section?.chapterId)
+      : book.chapters.find((c) => c.id === owner.id)
 
-/** Chapter scope — lives under the big brief; searches are steered by the
- *  brief fields, and picks ground every section draft in the chapter. */
-export function ChapterContextPanel({ chapterId }: { chapterId: string }) {
-  const book = useBookStore((s) => currentBook(s))
-  const chapter = book.chapters.find((c) => c.id === chapterId)
-  const update = useBookStore((s) => s.updateChapterWorkspace)
-  const ws = chapter?.workspace
-  const ctx = ws?.context ?? { items: [], searched: false }
-
-  const patchCtx = (next: SectionContext) => update(chapterId, { context: next })
-
-  // The big brief IS the search context: idea, purpose, outcome, notes.
-  const brief = [
-    ws?.idea && `Idea: ${ws.idea}`,
-    ws?.purpose && `Purpose: ${ws.purpose}`,
-    ws?.outcome && `Outcome for the reader: ${ws.outcome}`,
-    ws?.notes && `Notes: ${ws.notes}`,
-  ]
-    .filter(Boolean)
-    .join('\n')
+  let ctx: SectionContext
+  let payload: ContextScope['payload']
+  let groundsLabel: string
+  if (owner.kind === 'section') {
+    ctx = section?.context ?? { items: [], searched: false }
+    payload = {
+      bookTitle: book.title,
+      chapterTitle: chapter?.title,
+      sectionTitle: section?.title || section?.label,
+      brief: section?.brief,
+    }
+    groundsLabel = 'this section'
+  } else {
+    const ws = chapter?.workspace
+    ctx = ws?.context ?? { items: [], searched: false }
+    // The big brief IS the search context: idea, purpose, outcome, notes.
+    const brief = [
+      ws?.idea && `Idea: ${ws.idea}`,
+      ws?.purpose && `Purpose: ${ws.purpose}`,
+      ws?.outcome && `Outcome for the reader: ${ws.outcome}`,
+      ws?.notes && `Notes: ${ws.notes}`,
+    ]
+      .filter(Boolean)
+      .join('\n')
+    payload = { bookTitle: book.title, chapterTitle: chapter?.title, brief }
+    groundsLabel = 'this whole chapter'
+  }
 
   return (
     <ContextPanelBase
       scope={{
         ctx,
-        add: (item) => {
-          if (ctx.items.some((x) => x.refId === item.refId)) return
-          patchCtx({ ...ctx, items: [...ctx.items, { ...item, id: newId(), addedAt: Date.now() }] })
-        },
-        updateWhy: (id, why) =>
-          patchCtx({ ...ctx, items: ctx.items.map((x) => (x.id === id ? { ...x, why } : x)) }),
-        remove: (id) => patchCtx({ ...ctx, items: ctx.items.filter((x) => x.id !== id) }),
-        setSearched: () => patchCtx({ ...ctx, searched: true }),
-        payload: { bookTitle: book.title, chapterTitle: chapter?.title, brief },
-        groundsLabel: 'this whole chapter',
+        add: (item) => addItem(owner, item),
+        update: (id, patch) => updateItem(owner, id, patch),
+        remove: (id) => removeItem(owner, id),
+        setSearched: () => setSearched(owner),
+        payload,
+        groundsLabel,
       }}
     />
   )
