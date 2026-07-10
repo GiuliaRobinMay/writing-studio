@@ -184,21 +184,27 @@ function SnippetPlayer({ audioUrl, startSec, endSec }: { audioUrl: string; start
   )
 }
 
-/** Read more of a book passage, in place. Expansion fetches the chunk's
- *  surrounding SEGMENTS (sentence-sized, contiguous, chapter-clipped) from the
- *  gateway; each click widens the window. When `onHighlights` is given the
- *  sentences toggle on click — the author marks the exact lines that matter,
- *  and those are quoted verbatim in the draft prompt. */
+/** A book passage that swells in place. Collapsed it IS the excerpt; "Read
+ *  more" swaps it — same surface, never a second box — for the surrounding
+ *  passage with the book's own paragraph structure restored (segments group
+ *  by their source block; heading blocks render as headings) and the chunk's
+ *  sentences emphasized where they sit. When `onHighlights` is given the
+ *  sentences toggle on click and the picked lines are quoted in the draft. */
 function ChunkReader({
   chunkId,
+  excerpt,
+  textClass,
   highlights,
   onHighlights,
 }: {
   chunkId: string
+  excerpt: string
+  textClass: string
   highlights?: string[]
   onHighlights?: (next: string[]) => void
 }) {
   const [segments, setSegments] = useState<ExpandSegment[] | null>(null)
+  const [open, setOpen] = useState(false)
   const [window_, setWindow] = useState(12)
   const [more, setMore] = useState({ before: false, after: false })
   const [pages, setPages] = useState<string | null>(null)
@@ -217,6 +223,7 @@ function ChunkReader({
         setNote(r.error || 'Reading around this passage needs the live connection.')
       } else {
         setSegments(r.segments)
+        setOpen(true)
         setWindow(w)
         setMore({ before: !!r.hasMoreBefore, after: !!r.hasMoreAfter })
         setPages(
@@ -246,33 +253,54 @@ function ChunkReader({
     onHighlights([...outside, ...ordered])
   }
 
+  // consecutive segments of the same source block = one paragraph
+  const paras: ExpandSegment[][] = []
+  for (const s of segments ?? []) {
+    const last = paras[paras.length - 1]
+    if (last && last[0].block != null && last[0].block === s.block) last.push(s)
+    else paras.push([s])
+  }
+
   return (
     <div className="ctx-reader">
-      {segments && (
-        <p className={`ctx-reader-text${onHighlights ? ' picking' : ''}`}>
-          {segments.map((s) => (
-            <span
-              key={s.seq}
-              className={`ctx-seg${s.in_chunk ? ' in' : ''}${hl.has(s.text) ? ' hl' : ''}`}
-              onClick={() => toggle(s.text)}
-            >
-              {s.text}{' '}
-            </span>
-          ))}
-        </p>
+      {!open ? (
+        <p className={textClass}>{excerpt}</p>
+      ) : (
+        <div className={`ctx-reader-text${onHighlights ? ' picking' : ''}`}>
+          {paras.map((p) => {
+            const heading = (p[0].kind || '').includes('heading')
+            const Tag = heading ? 'h4' : 'p'
+            return (
+              <Tag key={p[0].seq} className={`ctx-para${heading ? ' heading' : ''}`}>
+                {p.map((s) => (
+                  <span
+                    key={s.seq}
+                    className={`ctx-seg${s.in_chunk ? ' in' : ''}${hl.has(s.text) ? ' hl' : ''}`}
+                    onClick={() => toggle(s.text)}
+                  >
+                    {s.text}{' '}
+                  </span>
+                ))}
+              </Tag>
+            )
+          })}
+        </div>
       )}
-      {segments && onHighlights && (
+      {open && onHighlights && (
         <p className="ctx-reader-hint">Click a sentence to highlight what matters — highlighted lines are quoted in the draft.</p>
       )}
       <div className="ctx-reader-foot">
         <button
           className="btn ghost"
-          disabled={busy || (!!segments && !more.before && !more.after)}
+          disabled={busy || (open && !more.before && !more.after)}
           onClick={() => load(segments ? window_ + 16 : 12)}
         >
-          {busy ? 'Loading…' : segments ? (more.before || more.after ? 'Read more' : 'Whole chapter shown') : onHighlights ? 'Read & highlight' : 'Read more'}
+          {busy ? 'Loading…' : open ? (more.before || more.after ? 'Read more' : 'Whole chapter shown') : onHighlights ? 'Read & highlight' : 'Read more'}
         </button>
-        {pages && <span className="ctx-source">{pages}</span>}
+        {open && (
+          <button className="btn ghost" onClick={() => setOpen(false)}>Show less</button>
+        )}
+        {open && pages && <span className="ctx-source">{pages}</span>}
       </div>
       {note && <p className="brief-note">{note}</p>}
     </div>
@@ -506,9 +534,12 @@ function ContextPanelBase({ scope }: { scope: ContextScope }) {
               )}
               {result.chunks.map((c) => (
                 <div key={c.chunkId} className="ctx-hit">
-                  <p className="ctx-hit-text">{c.text}</p>
+                  {canExpand(c) ? (
+                    <ChunkReader chunkId={c.chunkId} excerpt={c.text} textClass="ctx-hit-text" />
+                  ) : (
+                    <p className="ctx-hit-text">{c.text}</p>
+                  )}
                   {c.audioUrl && <SnippetPlayer audioUrl={c.audioUrl} startSec={c.startSec} endSec={c.endSec} />}
-                  {canExpand(c) && <ChunkReader chunkId={c.chunkId} />}
                   <div className="ctx-hit-foot">
                     <span className="ctx-source" title={c.source}>{c.source}</span>
                     {picked.has(c.chunkId) ? (
@@ -527,15 +558,18 @@ function ContextPanelBase({ scope }: { scope: ContextScope }) {
               <div className="ctx-items-head">Grounding {scope.groundsLabel}</div>
               {ctx.items.map((it) => (
                 <div key={it.id} className="ctx-item">
-                  <p className="ctx-item-excerpt">“{it.excerpt}”</p>
-                  {it.audioUrl && <SnippetPlayer audioUrl={it.audioUrl} startSec={it.startSec} endSec={it.endSec} />}
-                  {it.kind === 'chunk' && canExpand({ sourceType: it.sourceType, chunkId: it.refId }) && (
+                  {it.kind === 'chunk' && canExpand({ sourceType: it.sourceType, chunkId: it.refId }) ? (
                     <ChunkReader
                       chunkId={it.refId}
+                      excerpt={`“${it.excerpt}”`}
+                      textClass="ctx-item-excerpt"
                       highlights={it.highlights}
                       onHighlights={(next) => scope.update(it.id, { highlights: next })}
                     />
+                  ) : (
+                    <p className="ctx-item-excerpt">“{it.excerpt}”</p>
                   )}
+                  {it.audioUrl && <SnippetPlayer audioUrl={it.audioUrl} startSec={it.startSec} endSec={it.endSec} />}
                   {!!it.highlights?.length && (
                     <div className="ctx-highlights">
                       {it.highlights.map((h) => (

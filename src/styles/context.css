@@ -92,8 +92,11 @@
 /* Read more (ChunkReader): the passage around a hit, sentence by sentence.
    The original chunk reads slightly stronger; in picking mode sentences are
    clickable and highlighted ones carry the accent wash. */
-.ctx-reader { margin: 8px 0 6px; }
-.ctx-reader-text { font-family: var(--serif); font-size: 13px; line-height: 1.6; color: var(--ink-soft); margin: 0 0 6px; max-height: 300px; overflow-y: auto; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.ctx-reader { margin: 0 0 6px; }
+.ctx-reader-text { font-family: var(--serif); font-size: 13px; line-height: 1.62; color: var(--ink-soft); margin: 0 0 6px; max-height: 340px; overflow-y: auto; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.ctx-para { margin: 0 0 0.8em; }
+.ctx-para:last-child { margin-bottom: 0; }
+.ctx-para.heading { font-family: var(--sans); font-size: 11.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); margin: 1.1em 0 0.5em; }
 .ctx-seg.in { color: var(--ink); }
 .ctx-reader-text.picking .ctx-seg { cursor: pointer; border-radius: 3px; }
 .ctx-reader-text.picking .ctx-seg:hover { background: var(--accent-wash); }

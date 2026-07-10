@@ -76,7 +76,8 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === '/brain/expand' && req.method === 'POST') {
       const payload = await readBody(req)
-      const mcpToken = req.headers['x-mcp-token'] || process.env.GRAPHRAG_MCP_TOKEN
+      const { resolveMcpToken } = await import('./gatewayAuth.js')
+      const mcpToken = await resolveMcpToken(req)
       if (!mcpToken) return send(res, 200, { mode: 'demo' })
       const { expandChunk } = await import('./expand.js')
       return send(res, 200, await expandChunk(payload, mcpToken))
@@ -92,7 +93,8 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === '/claude/research' && req.method === 'POST') {
       const payload = await readBody(req)
-      const mcpToken = req.headers['x-mcp-token'] || process.env.GRAPHRAG_MCP_TOKEN
+      const { resolveMcpToken } = await import('./gatewayAuth.js')
+      const mcpToken = await resolveMcpToken(req)
       if (!process.env.ANTHROPIC_API_KEY || !mcpToken) return send(res, 200, { mode: 'demo' })
       const { researchSection } = await import('./research.js')
       return send(res, 200, await researchSection(process.env.ANTHROPIC_API_KEY, payload, mcpToken))
@@ -101,7 +103,8 @@ const server = createServer(async (req, res) => {
     if ((url.pathname === '/claude/advanced' || url.pathname === '/claude/seed' ||
          url.pathname === '/claude/interview') && req.method === 'POST') {
       const payload = await readBody(req)
-      const mcpToken = req.headers['x-mcp-token'] || process.env.GRAPHRAG_MCP_TOKEN
+      const { resolveMcpToken } = await import('./gatewayAuth.js')
+      const mcpToken = await resolveMcpToken(req)
       if (!process.env.ANTHROPIC_API_KEY || !mcpToken) return send(res, 200, { mode: 'demo' })
       if (url.pathname === '/claude/advanced') {
         const { advancedSearch } = await import('./advanced.js')

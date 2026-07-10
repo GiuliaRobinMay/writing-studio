@@ -34,6 +34,11 @@ export interface ExpandSegment {
   text: string
   /** True for the sentences that ARE the original chunk (styled distinctly). */
   in_chunk: boolean
+  /** The source paragraph this sentence belongs to — consecutive segments with
+   *  the same block render as one paragraph, restoring the book's structure. */
+  block?: string | null
+  /** para | heading | … — headings render as headings. */
+  kind?: string | null
 }
 
 export interface ExpandResult {
